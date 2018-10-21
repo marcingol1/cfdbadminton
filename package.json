@@ -1,0 +1,33 @@
+{
+  "name": "CFDBadminton",
+  "version": "1.0.0",
+  "description": "Crazy and Deadly Badminton game!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcingol1/CFDBadminton.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/marcingol1/CFDBadminton/issues"
+  },
+  "homepage": "https://github.com/marcingol1/CFDBadminton#readme",
+  "dependencies": {
+    "react": "^16.4.0",
+    "react-dom": "^16.4.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.4",
+    "babel-plugin-syntax-dynamic-import": "^6.18.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-react": "^6.24.1",
+    "webpack": "^4.11.1",
+    "webpack-cli": "^3.0.2"
+  }
+}
