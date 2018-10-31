@@ -22,7 +22,7 @@ const styles = {
 };
 
 function TopBarComponent(props: any) {
-  const { classes } = props;
+  const { classes, title } = props;
   return (
     <div className={classes.root}>
       <AppBar position="static">
@@ -31,7 +31,7 @@ function TopBarComponent(props: any) {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" color="inherit" className={classes.grow}>
-            News
+            {title}
           </Typography>
           <Button color="inherit">Login</Button>
         </Toolbar>

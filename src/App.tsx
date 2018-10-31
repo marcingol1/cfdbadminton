@@ -1,15 +1,17 @@
-import React, { Component } from 'react';
+import React, { Fragment } from 'react';
+import CssBaseline from '@material-ui/core/CssBaseline';
+
 import TopBarComponent from './top-bar/top-bar-component';
 
-class App extends Component {
-  render() {
-    return (
-      <div>
-        <TopBarComponent />
-        hello!
-      </div>
-    );
-  }
+const title = 'Crazy freakin\' deadly 🏸';
+function MyApp() {
+  return (
+    <Fragment>
+      <CssBaseline />
+      <TopBarComponent title={title} />
+      <h1 style={{textAlign: 'center', margin: 20}}>{title} welcome page!</h1>
+    </Fragment>
+  );
 }
 
-export default App;
+export default MyApp;
