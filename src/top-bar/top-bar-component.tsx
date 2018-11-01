@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { withStyles } from '@material-ui/core/styles';
@@ -9,7 +9,7 @@ import Toolbar from '@material-ui/core/Toolbar';
 import List from '@material-ui/core/List';
 import Typography from '@material-ui/core/Typography';
 import Divider from '@material-ui/core/Divider';
-import IconButton from '@material-ui/core/IconButton';
+import IconButton, { IconButtonProps } from '@material-ui/core/IconButton';
 import MenuIcon from '@material-ui/icons/Menu';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
@@ -78,6 +78,11 @@ const styles = (theme: any) => ({
   },
 });
 
+interface InterfaceListElement {
+  name: string;
+  icon: React.ReactElement<any>;
+}
+
 class PersistentDrawerLeft extends React.Component<any, any> {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -96,68 +101,96 @@ class PersistentDrawerLeft extends React.Component<any, any> {
     this.setState({ open: false });
   };
 
+  getMenuConfig = () => {
+    const data = [
+      [
+        { name: 'Servers', icon: <InboxIcon /> },
+        { name: 'Ranking', icon: <InboxIcon /> },
+        { name: 'Inventory', icon: <InboxIcon /> },
+      ],
+      [
+        { name: 'Profile', icon: <InboxIcon /> },
+        { name: 'Settings', icon: <InboxIcon /> },
+        { name: 'Info', icon: <InboxIcon /> },
+      ],
+    ];
+    return data;
+  };
+
+  renderMenuList = (listConfig: any) => {
+    return (
+      <Fragment>
+        <List>
+          {listConfig.map(({ name, icon }: InterfaceListElement) => (
+            <ListItem button key={name}>
+              <ListItemIcon>
+                {icon}
+              </ListItemIcon>
+              <ListItemText primary={name} />
+            </ListItem>
+          ))}
+        </List>
+        <Divider />
+      </Fragment>
+    )
+  }
+
+  getToolbar = (classes: any, title: any, open: any) => (
+    <Toolbar disableGutters={!open}>
+      <IconButton
+        color="inherit"
+        aria-label="Open drawer"
+        onClick={this.handleDrawerOpen}
+        className={classNames(classes.menuButton, open && classes.hide)}
+      >
+        <MenuIcon />
+      </IconButton>
+      <Typography variant="h6" color="inherit" noWrap>
+        {title}
+      </Typography>
+    </Toolbar>
+  )
+
+  getDrawer = (classes: any, theme: any, open: any) => (
+    <Drawer
+      className={classes.drawer}
+      variant="persistent"
+      anchor="left"
+      open={open}
+      classes={{
+        paper: classes.drawerPaper,
+      }}
+    >
+      <div className={classes.drawerHeader}>
+        <IconButton onClick={this.handleDrawerClose}>
+          {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+        </IconButton>
+      </div>
+      <Divider />
+      {this.renderMenu()}
+    </Drawer>
+  )
+
+  renderMenu = () => {
+    const menu = this.getMenuConfig();
+    return menu.map(this.renderMenuList);
+  }
+
   render() {
     const { classes, theme, title, children } = this.props;
     const { open } = this.state;
-    const routings = ['Servers', 'Ranking', 'Inventory'];
-    const utilityRoutes = ['Profile', 'Settings', 'Info'];
 
     return (
       <div className={classes.root}>
-        <CssBaseline />
         <AppBar
           position="fixed"
           className={classNames(classes.appBar, {
             [classes.appBarShift]: open,
           })}
         >
-          <Toolbar disableGutters={!open}>
-            <IconButton
-              color="inherit"
-              aria-label="Open drawer"
-              onClick={this.handleDrawerOpen}
-              className={classNames(classes.menuButton, open && classes.hide)}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography variant="h6" color="inherit" noWrap>
-              Persistent drawer
-            </Typography>
-          </Toolbar>
+          {this.getToolbar(classes, title, open)}
         </AppBar>
-        <Drawer
-          className={classes.drawer}
-          variant="persistent"
-          anchor="left"
-          open={open}
-          classes={{
-            paper: classes.drawerPaper,
-          }}
-        >
-          <div className={classes.drawerHeader}>
-            <IconButton onClick={this.handleDrawerClose}>
-              {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-            </IconButton>
-          </div>
-          <Divider />
-          <List>
-            {routings.map((text, index) => (
-              <ListItem button key={text}>
-                <ListItemIcon>{index % 2 === 0 ? <InboxIcon /> : <MailIcon />}</ListItemIcon>
-                <ListItemText primary={text} />
-              </ListItem>
-            ))}
-          </List>
-          <Divider />
-          <List>
-            {utilityRoutes.map((text, index) => (
-              <ListItem button key={text}>
-                <ListItemIcon>{index % 2 === 0 ? <InboxIcon /> : <MailIcon />}</ListItemIcon>
-                <ListItemText primary={text} />
-              </ListItem>
-            ))}
-          </List>
-        </Drawer>
+        {this.getDrawer(classes, theme, open)}
         <main
           className={classNames(classes.content, {
             [classes.contentShift]: open,
