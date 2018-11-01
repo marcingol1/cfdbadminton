@@ -2,15 +2,15 @@ import React, { Fragment } from 'react';
 import CssBaseline from '@material-ui/core/CssBaseline';
 
 import TopBarComponent from './top-bar/top-bar-component';
+import ThemeHoc from './theme/theme-hoc';
 
-const title = 'Crazy freakin\' deadly 🏸';
 function MyApp() {
   return (
-    <Fragment>
-      <CssBaseline />
-      <TopBarComponent title={title} />
-      <h1 style={{textAlign: 'center', margin: 20}}>{title} welcome page!</h1>
-    </Fragment>
+    <ThemeHoc>
+      <CssBaseline>
+        <TopBarComponent />
+      </CssBaseline>
+    </ThemeHoc>
   );
 }
 
