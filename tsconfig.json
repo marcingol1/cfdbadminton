@@ -1,20 +1,35 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "allowJs": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "allowJs": false,
+    "allowUnusedLabels": true,
+    "baseUrl": ".",
+    "experimentalDecorators": true,
+    "declaration": true,
+    "jsx": "react",
+    "lib": [
+      "dom",
+      "es2015",
+      "esnext"
+    ],
+    "module": "commonjs",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "dist/ts",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "brotli-webpack-plugin": ["types/modules"],
+      "microseconds": ["types/microseconds"]
+    },
+    "removeComments": true,
+    "sourceMap": true,
     "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "preserve"
+    "target": "es2017",
   },
-  "include": [
-    "src"
+  "exclude": [
+    "dist",
+    "__tests__",
+    "wallaby.js"
   ]
 }

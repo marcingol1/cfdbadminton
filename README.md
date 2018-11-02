@@ -1,2 +1,1 @@
-# CFDBadminton
-Crazy and Deadly Badminton game!
+#Crazy freakin' deadly badminton first poc!

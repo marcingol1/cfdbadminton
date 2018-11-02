@@ -28,8 +28,8 @@ function generateRandomListElement() {
 function ListItemComponent(props) {
   const { index, title, playersOnline, region, gameType, id } = props;
 
-  function fetchServersPage() {
-    console.log('entering servers page!');
+  function fetchServersPage(id) {
+    console.log(`entering server with id: ${id} page!`);
   }
 
   return (
