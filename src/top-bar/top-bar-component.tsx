@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { withStyles } from '@material-ui/core/styles';
 import Drawer from '@material-ui/core/Drawer';
-import CssBaseline from '@material-ui/core/CssBaseline';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import List from '@material-ui/core/List';
@@ -17,7 +16,11 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import InboxIcon from '@material-ui/icons/MoveToInbox';
-import MailIcon from '@material-ui/icons/Mail';
+import SettingsIcon from '@material-ui/icons/Settings';
+import GamesIcon from '@material-ui/icons/Games';
+import StarRateIcon from '@material-ui/icons/StarRate';
+import DetailsIcon from '@material-ui/icons/Details';
+import InfoIcon from '@material-ui/icons/Info';
 
 const drawerWidth = 240;
 
@@ -104,14 +107,14 @@ class PersistentDrawerLeft extends React.Component<any, any> {
   getMenuConfig = () => {
     const data = [
       [
-        { name: 'Servers', icon: <InboxIcon /> },
-        { name: 'Ranking', icon: <InboxIcon /> },
-        { name: 'Inventory', icon: <InboxIcon /> },
+        { name: 'Servers', icon: <GamesIcon /> },
+        { name: 'Ranking', icon: <StarRateIcon /> },
+        { name: 'Inventory', icon: <DetailsIcon /> },
       ],
       [
         { name: 'Profile', icon: <InboxIcon /> },
-        { name: 'Settings', icon: <InboxIcon /> },
-        { name: 'Info', icon: <InboxIcon /> },
+        { name: 'Settings', icon: <SettingsIcon /> },
+        { name: 'Info', icon: <InfoIcon /> },
       ],
     ];
     return data;
