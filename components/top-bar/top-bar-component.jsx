@@ -8,7 +8,7 @@ import Toolbar from '@material-ui/core/Toolbar';
 import List from '@material-ui/core/List';
 import Typography from '@material-ui/core/Typography';
 import Divider from '@material-ui/core/Divider';
-import IconButton, { IconButtonProps } from '@material-ui/core/IconButton';
+import IconButton from '@material-ui/core/IconButton';
 import MenuIcon from '@material-ui/icons/Menu';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
@@ -24,7 +24,7 @@ import InfoIcon from '@material-ui/icons/Info';
 
 const drawerWidth = 240;
 
-const styles = (theme: any) => ({
+const styles = (theme) => ({
   root: {
     display: 'flex',
   },
@@ -81,12 +81,7 @@ const styles = (theme: any) => ({
   },
 });
 
-interface InterfaceListElement {
-  name: string;
-  icon: React.ReactElement<any>;
-}
-
-class PersistentDrawerLeft extends React.Component<any, any> {
+class PersistentDrawerLeft extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     theme: PropTypes.object.isRequired,
@@ -120,11 +115,11 @@ class PersistentDrawerLeft extends React.Component<any, any> {
     return data;
   };
 
-  renderMenuList = (listConfig: any) => {
+  renderMenuList = (listConfig) => {
     return (
       <Fragment>
         <List>
-          {listConfig.map(({ name, icon }: InterfaceListElement) => (
+          {listConfig.map(({ name, icon }) => (
             <ListItem button key={name}>
               <ListItemIcon>
                 {icon}
@@ -138,7 +133,7 @@ class PersistentDrawerLeft extends React.Component<any, any> {
     )
   }
 
-  getToolbar = (classes: any, title: any, open: any) => (
+  getToolbar = (classes, title, open) => (
     <Toolbar disableGutters={!open}>
       <IconButton
         color="inherit"
@@ -154,7 +149,7 @@ class PersistentDrawerLeft extends React.Component<any, any> {
     </Toolbar>
   )
 
-  getDrawer = (classes: any, theme: any, open: any) => (
+  getDrawer = (classes, theme, open) => (
     <Drawer
       className={classes.drawer}
       variant="persistent"

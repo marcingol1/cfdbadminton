@@ -1,14 +1,9 @@
-import React, { Fragment } from 'react'
+import React from 'react'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 import indigo from '@material-ui/core/colors/indigo';
 import pink from '@material-ui/core/colors/pink';
 
-interface InterfaceThemeHocProps {
-  children?: object;
-  dark?: boolean;
-}
-
-const theme = (isDark: boolean = false) => createMuiTheme({
+const theme = (isDark = false) => createMuiTheme({
   palette: {
     primary: indigo,
     secondary: pink,
@@ -16,7 +11,7 @@ const theme = (isDark: boolean = false) => createMuiTheme({
   }
 });
 
-const ThemeHoc = (props: InterfaceThemeHocProps) => {
+const ThemeHoc = (props) => {
   return (
     <MuiThemeProvider theme={theme(props.dark)}>
       {props.children}

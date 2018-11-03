@@ -1,10 +1,10 @@
 import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
-import { Typography, withStyles } from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 
-import ServerList from '../server-list/server-list';
+import ServerList from './../server-list/server-list';
 
-const styles = (theme: any) => ({
+const styles = (theme) => ({
   drawerHeader: {
     display: 'flex',
     alignItems: 'center',
@@ -14,7 +14,7 @@ const styles = (theme: any) => ({
   }
 });
 
-export class DashboardComponent extends Component<any, any> {
+export class DashboardComponent extends Component {
   static propTypes = {
     classes: PropTypes.object,
   }
