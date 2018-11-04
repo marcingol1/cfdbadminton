@@ -10,6 +10,8 @@ import {
 } from '@material-ui/core';
 import GamesIcon from '@material-ui/icons/Games';
 
+import { fetchHello } from './../../services/hello-service';
+
 let index = 0;
 const regions = ['Europe', 'Asia', 'North America', 'South America'];
 const gameTypes = ['Deatmatch', 'Capture the flag', 'Arena (team DM)'];
@@ -57,11 +59,6 @@ function ListItemComponent(props) {
   );
 }
 
-const fetchPong = async () => {
-  const res = await fetch('/ping');
-  console.log(await res.json());
-}
-
 function ServerList() {
   const [list, setList] = useState([generateRandomListElement()]);
 
@@ -69,7 +66,7 @@ function ServerList() {
     setList([...list, generateRandomListElement()]);
   }
 
-  fetchPong();
+  fetchHello();
 
   return (
     <Fragment>

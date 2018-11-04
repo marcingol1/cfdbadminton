@@ -3,18 +3,72 @@ import path from 'path';
 import cors from 'cors';
 import { ApolloServer, gql } from 'apollo-server-express';
 
-// Construct a schema, using GraphQL schema language
+const regions = ['Europe', 'Asia', 'NorthAmerica', 'SouthAmerica'];
+const gameTypes = ['Deathmatch', 'CaptureTheFlag', 'Arena'];
+
+function generateRandomListElement() {
+  return {
+    id: `asod-123-132`,
+    title: 'Some random title',
+    playersOnline: Math.round(Math.random() * 120),
+    region: regions[Math.floor(Math.random() * (regions.length))],
+    match: {
+      score: Math.round(Math.random() * 100),
+      gameType: gameTypes[Math.floor(Math.random() * (gameTypes.length))],
+      players: [
+        {
+          id: 'asda-jakies-id',
+          online: true,
+          gamesHistory: [{
+            score: Math.round(Math.random() * 100),
+            gameType: gameTypes[Math.floor(Math.random() * (gameTypes.length))],
+          }]
+        }
+      ]
+    }
+  };
+}
+const servers = (new Array(15)).fill({}).map(generateRandomListElement);
 const typeDefs = gql`
-  type Query {
-    hello: String
+  enum GameType {
+    Deathmatch
+    CaptureTheFlag
+    Arena
   }
-`;
+  type Player {
+    id: ID
+    online: Boolean
+    gamesHistory: [Match]
+  }
+  type Match {
+    score: Float
+    gameType: GameType,
+    players: [Player]
+  }
+  enum Region {
+    Europe
+    Asia
+    NorthAmerica
+    SouthAmerica
+  }
+  type Server {
+    id: String
+    title: String
+    playersOnline: Int
+    region: Region
+    match: Match
+  }
+
+  type Query {
+    servers: [Server]
+  }
+`
 
 // Provide resolver functions for your schema fields
 const resolvers = {
   Query: {
-    hello: () => 'Hello world'
-  }
+    servers: () => servers,
+  },
 };
 
 const buildPath = '../build';
