@@ -1,4 +1,3 @@
-import React from 'react';
 import CssBaseline from '@material-ui/core/CssBaseline';
 
 import TopBarComponent from './../components/top-bar/top-bar-component';
