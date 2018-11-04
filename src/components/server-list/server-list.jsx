@@ -77,8 +77,8 @@ function ServerList() {
         Create your own server
       </Button>
       <List>
-        {list.map(listItem => (
-          <ListItemComponent {...listItem} />
+        {list.map((listItem, index) => (
+          <ListItemComponent {...listItem} key={index} />
         ))}
       </List>
     </Fragment>

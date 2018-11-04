@@ -115,9 +115,9 @@ class PersistentDrawerLeft extends React.Component {
     return data;
   };
 
-  renderMenuList = (listConfig) => {
+  renderMenuList = (listConfig, index) => {
     return (
-      <Fragment>
+      <Fragment key={index}>
         <List>
           {listConfig.map(({ name, icon }) => (
             <ListItem button key={name}>

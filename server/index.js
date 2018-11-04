@@ -1,7 +1,7 @@
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const { ApolloServer, gql } = require('apollo-server-express');
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import { ApolloServer, gql } from 'apollo-server-express';
 
 // Construct a schema, using GraphQL schema language
 const typeDefs = gql`

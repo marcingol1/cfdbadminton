@@ -4,6 +4,9 @@ import indigo from '@material-ui/core/colors/indigo';
 import pink from '@material-ui/core/colors/pink';
 
 const theme = (isDark = false) => createMuiTheme({
+  typography: {
+    useNextVariants: true,
+  },
   palette: {
     primary: indigo,
     secondary: pink,
