@@ -13,8 +13,8 @@ const typeDefs = gql`
 // Provide resolver functions for your schema fields
 const resolvers = {
   Query: {
-    hello: () => 'Hello world!',
-  },
+    hello: () => 'Hello world'
+  }
 };
 
 const buildPath = '../build';
@@ -35,6 +35,8 @@ app.get('/ping', function (req, res) {
 server.applyMiddleware({ app });
 
 const port = process.env.PORT || 8080;
-app.listen(port, () => (
-  console.log(`🚀 Server ready at http://localhost:8080${server.graphqlPath}`)
-));
+
+app.listen(port, () => {
+  console.log(`🚀 GraphQL endpoint ready at http://localhost:8080${server.graphqlPath}`);
+  console.log('🚀 Default API endpoint hosted at http://localhost:3000');
+});
