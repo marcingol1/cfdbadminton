@@ -57,12 +57,19 @@ function ListItemComponent(props) {
   );
 }
 
+const fetchPong = async () => {
+  const res = await fetch('/ping');
+  console.log(await res.json());
+}
+
 function ServerList() {
   const [list, setList] = useState([generateRandomListElement()]);
 
   function handleListChange() {
     setList([...list, generateRandomListElement()]);
   }
+
+  fetchPong();
 
   return (
     <Fragment>

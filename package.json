@@ -8,6 +8,7 @@
     "@material-ui/icons": "^3.0.1",
     "apollo-server": "^2.1.0",
     "apollo-server-express": "^2.1.0",
+    "cors": "^2.8.4",
     "graphql": "^14.0.2",
     "react": "^16.7.0-alpha.0",
     "react-dom": "^16.7.0-alpha.0",
