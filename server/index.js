@@ -3,6 +3,8 @@ import path from 'path';
 import cors from 'cors';
 import { ApolloServer, gql } from 'apollo-server-express';
 
+const { prisma } = require('./prisma');
+
 const regions = ['Europe', 'Asia', 'NorthAmerica', 'SouthAmerica'];
 const gameTypes = ['Deathmatch', 'CaptureTheFlag', 'Arena'];
 
@@ -87,8 +89,21 @@ app.get('/ping', function (req, res) {
  });
 
 server.applyMiddleware({ app });
-
 const port = process.env.PORT || 8080;
+
+// A `main` function so that we can use async/await
+async function main() {
+
+  // Create a new user called `Alice`
+  const newUser = await prisma.createUser({ name: 'Alice' })
+  console.log(`Created new user: ${newUser.name} (ID: ${newUser.id})`)
+
+  // Read all users from the database and print them to the console
+  const allUsers = await prisma.users()
+  console.log(allUsers)
+}
+
+main().catch(e => console.error(e))
 
 app.listen(port, () => {
   console.log(`🚀 GraphQL endpoint ready at http://localhost:8080${server.graphqlPath}`);

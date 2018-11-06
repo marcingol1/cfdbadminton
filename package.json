@@ -14,6 +14,7 @@
     "cors": "^2.8.4",
     "graphql": "^14.0.2",
     "nodemon": "^1.18.5",
+    "prisma-client-lib": "^1.19.3",
     "react": "^16.7.0-alpha.0",
     "react-dom": "^16.7.0-alpha.0",
     "react-scripts": "2.1.1"
@@ -21,7 +22,7 @@
   "scripts": {
     "start": "react-scripts start",
     "server": "node --exec babel-node server/index.js",
-    "server-watch": "nodemon --exec babel-node server/index.js",
+    "server:watch": "nodemon --exec babel-node server/index.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
