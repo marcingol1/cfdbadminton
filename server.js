@@ -3,7 +3,7 @@ import path from 'path';
 import cors from 'cors';
 import { ApolloServer } from 'apollo-server-express';
 
-import { prisma } from './prisma';
+import { prisma } from './server/prisma';
 
 import typeDefs from './schema/main';
 

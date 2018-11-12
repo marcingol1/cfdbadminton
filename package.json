@@ -29,8 +29,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "server": "babel -d ./build ./server/index.js -s && node ./build/index.js",
-    "server:watch": "nodemon --exec babel-node server/index.js",
+    "build": "babel server -d ./ ./server.js -s",
+    "server": "node ./build/server.js",
+    "server:watch": "nodemon --exec babel-node server.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
