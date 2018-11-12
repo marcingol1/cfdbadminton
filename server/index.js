@@ -1,44 +1,11 @@
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
-import { ApolloServer, gql } from 'apollo-server-express';
+import { ApolloServer } from 'apollo-server-express';
 
 import { prisma } from './prisma';
 
-const typeDefs = gql`
-  enum GameType {
-    Deathmatch
-    CaptureTheFlag
-    Arena
-  }
-  type Player {
-    id: ID
-    online: Boolean
-    gamesHistory: [Match]
-  }
-  type Match {
-    score: Float
-    gameType: GameType,
-    players: [Player]
-  }
-  enum Region {
-    Europe
-    Asia
-    NorthAmerica
-    SouthAmerica
-  }
-  type Server {
-    id: String
-    title: String
-    playersOnline: Int
-    region: Region
-    match: Match
-  }
-
-  type Query {
-    servers: [Server]
-  }
-`
+import typeDefs from './schema/main';
 
 // Provide resolver functions for your schema fields
 const resolvers = {
@@ -50,8 +17,16 @@ const resolvers = {
 const buildPath = '../build';
 const server = new ApolloServer({
   typeDefs,
-  mocks: true,
+  formatError: error => {
+    console.log(error);
+    return error;
+  },
+  formatResponse: response => {
+    console.log(response);
+    return response;
+  },
   // resolvers
+  mocks: true,
 });
 
 const app = express();
