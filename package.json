@@ -4,6 +4,13 @@
   "private": true,
   "main": "server/index.js",
   "proxy": "http://localhost:8080",
+  "engines": {
+    "node": "10.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marcingol1/cfdbadminton"
+  },
   "dependencies": {
     "@material-ui/core": "^3.3.2",
     "@material-ui/icons": "^3.0.1",
@@ -20,7 +27,7 @@
     "react-scripts": "2.1.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "node --exec babel-node server/index.js",
     "server": "node --exec babel-node server/index.js",
     "server:watch": "nodemon --exec babel-node server/index.js",
     "build": "react-scripts build",
