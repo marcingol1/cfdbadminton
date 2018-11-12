@@ -2,7 +2,7 @@
   "name": "cfdbadminton",
   "version": "0.1.0",
   "private": true,
-  "main": "server/index.js",
+  "main": "server.js",
   "proxy": "http://localhost:8080",
   "engines": {
     "node": "10.x"
@@ -29,9 +29,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "babel server -d ./ ./server.js -s",
-    "server": "node ./build/server.js",
-    "server:watch": "nodemon --exec babel-node server.js",
+    "build": "react-scripts build",
+    "server": "node ./server/index.js",
+    "server:watch": "nodemon --exec babel-node server/index.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

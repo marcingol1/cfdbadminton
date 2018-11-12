@@ -1,11 +1,43 @@
-import express from 'express';
-import path from 'path';
-import cors from 'cors';
-import { ApolloServer } from 'apollo-server-express';
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+const { ApolloServer, gql } = require('apollo-server-express');
 
-import { prisma } from './server/prisma';
+const typeDefs = gql`
+  enum GameType {
+    Deathmatch
+    CaptureTheFlag
+    Arena
+  }
+  type Player {
+    id: ID
+    online: Boolean
+    gamesHistory: [Match]
+  }
+  type Match {
+    score: Float
+    gameType: GameType,
+    players: [Player]
+  }
+  enum Region {
+    Europe
+    Asia
+    NorthAmerica
+    SouthAmerica
+  }
+  type Server {
+    id: String
+    title: String
+    playersOnline: Int
+    region: Region
+    match: Match
+  }
 
-import typeDefs from './schema/main';
+  type Query {
+    servers: [Server]
+  }
+`;
+
 
 // Provide resolver functions for your schema fields
 const resolvers = {
@@ -25,6 +57,8 @@ const server = new ApolloServer({
     console.log(response);
     return response;
   },
+  introspection: true,
+  playground: true,
   // resolvers
   mocks: true,
 });
@@ -32,6 +66,8 @@ const server = new ApolloServer({
 const app = express();
 app.use(cors());
 app.use(express.static(path.join(__dirname, buildPath)));
+
+console.log(path.join(__dirname, buildPath));
 
 app.get('/ping', function (req, res) {
   return res.send(JSON.stringify('pong'));
