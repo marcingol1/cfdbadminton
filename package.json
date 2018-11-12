@@ -17,6 +17,7 @@
     "apollo-server": "^2.1.0",
     "apollo-server-express": "^2.1.0",
     "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
     "babel-preset-latest": "^6.24.1",
     "cors": "^2.8.4",
     "graphql": "^14.0.2",
@@ -27,10 +28,9 @@
     "react-scripts": "2.1.1"
   },
   "scripts": {
-    "start": "node --exec babel-node server/index.js",
-    "server": "node --exec babel-node server/index.js",
+    "start": "react-scripts start",
+    "server": "babel -d ./build ./server/index.js -s && node ./build/index.js",
     "server:watch": "nodemon --exec babel-node server/index.js",
-    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -50,6 +50,7 @@
     "not op_mini all"
   ],
   "devDependencies": {
+    "babel-watch": "^2.0.7",
     "eslint-plugin-react-hooks": "0.0.0"
   }
 }
