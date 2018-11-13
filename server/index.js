@@ -57,9 +57,9 @@ const server = new ApolloServer({
     console.log(response);
     return response;
   },
-  engine: {
-  apiKey: "service:marcingol1-4279:PJKcqtEYmwsan_uwTraGiQ"
-  },
+  tracing: true,
+  cacheControl: true,
+  apiKey: "service:marcingol1-4279:US90MG5BQgOekscoGUX4vA",
   introspection: true,
   playground: true,
   // resolvers
