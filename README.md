@@ -1,8 +1,5 @@
 # CFDBadminton
-# Crazy and Freakin' Deadly Badminton game!
-
-Game available at: https://cfdbadminton.herokuapp.com/
+# API hosted by Heroku via Prisma Cloud
 
 # If you want to run this locally:
-1. clear out `.env.development` file
-2.  run:  `npm i && npm run dev`
+1.  run:  `npm run dev`
