@@ -21,7 +21,7 @@ type Server {
   players: [Player!]!
   title: String
   playersOnline: Int
-  math: [Match!]!
+  match: [Match!]!
 }
 
 enum GameType {
