@@ -1,6 +1,19 @@
-# timestamp: Wed Apr 25 2018 10:32:35 GMT+0200 (CEST)
+# source: https://heroku-d75797db8c.herokuapp.com/cfdbadminton/dev
+# timestamp: Sat Nov 24 2018 15:53:50 GMT+0100 (Central European Standard Time)
+
+type AggregateMatch {
+  count: Int!
+}
+
+type AggregatePlayer {
+  count: Int!
+}
 
 type AggregatePost {
+  count: Int!
+}
+
+type AggregateServer {
   count: Int!
 }
 
@@ -15,25 +28,192 @@ type BatchPayload {
 
 scalar DateTime
 
+enum GameType {
+  Deathmatch
+  CaptureTheFlag
+  Arena
+}
+
 """
 The `Long` scalar type represents non-fractional signed whole numeric values.
 Long can represent values between -(2^63) and 2^63 - 1.
 """
 scalar Long
 
+type Match {
+  score: Float
+  gameType: GameType
+  players(where: PlayerWhereInput, orderBy: PlayerOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): [Player!]
+}
+
+"""A connection to a list of items."""
+type MatchConnection {
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """A list of edges."""
+  edges: [MatchEdge]!
+  aggregate: AggregateMatch!
+}
+
+input MatchCreateInput {
+  score: Float
+  gameType: GameType
+  players: PlayerCreateManyWithoutGamesHistoryInput
+}
+
+input MatchCreateManyInput {
+  create: [MatchCreateInput!]
+}
+
+input MatchCreateManyWithoutPlayersInput {
+  create: [MatchCreateWithoutPlayersInput!]
+}
+
+input MatchCreateWithoutPlayersInput {
+  score: Float
+  gameType: GameType
+}
+
+"""An edge in a connection."""
+type MatchEdge {
+  """The item at the end of the edge."""
+  node: Match!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+enum MatchOrderByInput {
+  score_ASC
+  score_DESC
+  gameType_ASC
+  gameType_DESC
+  id_ASC
+  id_DESC
+  updatedAt_ASC
+  updatedAt_DESC
+  createdAt_ASC
+  createdAt_DESC
+}
+
+type MatchPreviousValues {
+  score: Float
+  gameType: GameType
+}
+
+type MatchSubscriptionPayload {
+  mutation: MutationType!
+  node: Match
+  updatedFields: [String!]
+  previousValues: MatchPreviousValues
+}
+
+input MatchSubscriptionWhereInput {
+  """Logical AND on all given filters."""
+  AND: [MatchSubscriptionWhereInput!]
+
+  """Logical OR on all given filters."""
+  OR: [MatchSubscriptionWhereInput!]
+
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [MatchSubscriptionWhereInput!]
+
+  """
+  The subscription event gets dispatched when it's listed in mutation_in
+  """
+  mutation_in: [MutationType!]
+
+  """
+  The subscription event gets only dispatched when one of the updated fields names is included in this list
+  """
+  updatedFields_contains: String
+
+  """
+  The subscription event gets only dispatched when all of the field names included in this list have been updated
+  """
+  updatedFields_contains_every: [String!]
+
+  """
+  The subscription event gets only dispatched when some of the field names included in this list have been updated
+  """
+  updatedFields_contains_some: [String!]
+  node: MatchWhereInput
+}
+
+input MatchUpdateManyMutationInput {
+  score: Float
+  gameType: GameType
+}
+
+input MatchWhereInput {
+  """Logical AND on all given filters."""
+  AND: [MatchWhereInput!]
+
+  """Logical OR on all given filters."""
+  OR: [MatchWhereInput!]
+
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [MatchWhereInput!]
+  score: Float
+
+  """All values that are not equal to given value."""
+  score_not: Float
+
+  """All values that are contained in given list."""
+  score_in: [Float!]
+
+  """All values that are not contained in given list."""
+  score_not_in: [Float!]
+
+  """All values less than the given value."""
+  score_lt: Float
+
+  """All values less than or equal the given value."""
+  score_lte: Float
+
+  """All values greater than the given value."""
+  score_gt: Float
+
+  """All values greater than or equal the given value."""
+  score_gte: Float
+  gameType: GameType
+
+  """All values that are not equal to given value."""
+  gameType_not: GameType
+
+  """All values that are contained in given list."""
+  gameType_in: [GameType!]
+
+  """All values that are not contained in given list."""
+  gameType_not_in: [GameType!]
+  players_every: PlayerWhereInput
+  players_some: PlayerWhereInput
+  players_none: PlayerWhereInput
+}
+
 type Mutation {
   createPost(data: PostCreateInput!): Post!
   createUser(data: UserCreateInput!): User!
+  createServer(data: ServerCreateInput!): Server!
+  createPlayer(data: PlayerCreateInput!): Player!
+  createMatch(data: MatchCreateInput!): Match!
   updatePost(data: PostUpdateInput!, where: PostWhereUniqueInput!): Post
   updateUser(data: UserUpdateInput!, where: UserWhereUniqueInput!): User
   deletePost(where: PostWhereUniqueInput!): Post
   deleteUser(where: UserWhereUniqueInput!): User
   upsertPost(where: PostWhereUniqueInput!, create: PostCreateInput!, update: PostUpdateInput!): Post!
   upsertUser(where: UserWhereUniqueInput!, create: UserCreateInput!, update: UserUpdateInput!): User!
-  updateManyPosts(data: PostUpdateInput!, where: PostWhereInput): BatchPayload!
-  updateManyUsers(data: UserUpdateInput!, where: UserWhereInput): BatchPayload!
+  updateManyPosts(data: PostUpdateManyMutationInput!, where: PostWhereInput): BatchPayload!
+  updateManyUsers(data: UserUpdateManyMutationInput!, where: UserWhereInput): BatchPayload!
+  updateManyServers(data: ServerUpdateManyMutationInput!, where: ServerWhereInput): BatchPayload!
+  updateManyPlayers(data: PlayerUpdateManyMutationInput!, where: PlayerWhereInput): BatchPayload!
+  updateManyMatches(data: MatchUpdateManyMutationInput!, where: MatchWhereInput): BatchPayload!
   deleteManyPosts(where: PostWhereInput): BatchPayload!
   deleteManyUsers(where: UserWhereInput): BatchPayload!
+  deleteManyServers(where: ServerWhereInput): BatchPayload!
+  deleteManyPlayers(where: PlayerWhereInput): BatchPayload!
+  deleteManyMatches(where: MatchWhereInput): BatchPayload!
 }
 
 enum MutationType {
@@ -63,6 +243,123 @@ type PageInfo {
   endCursor: String
 }
 
+type Player {
+  online: Boolean
+  gamesHistory(where: MatchWhereInput, orderBy: MatchOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): [Match!]
+}
+
+"""A connection to a list of items."""
+type PlayerConnection {
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """A list of edges."""
+  edges: [PlayerEdge]!
+  aggregate: AggregatePlayer!
+}
+
+input PlayerCreateInput {
+  online: Boolean
+  gamesHistory: MatchCreateManyWithoutPlayersInput
+}
+
+input PlayerCreateManyInput {
+  create: [PlayerCreateInput!]
+}
+
+input PlayerCreateManyWithoutGamesHistoryInput {
+  create: [PlayerCreateWithoutGamesHistoryInput!]
+}
+
+input PlayerCreateWithoutGamesHistoryInput {
+  online: Boolean
+}
+
+"""An edge in a connection."""
+type PlayerEdge {
+  """The item at the end of the edge."""
+  node: Player!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+enum PlayerOrderByInput {
+  online_ASC
+  online_DESC
+  id_ASC
+  id_DESC
+  updatedAt_ASC
+  updatedAt_DESC
+  createdAt_ASC
+  createdAt_DESC
+}
+
+type PlayerPreviousValues {
+  online: Boolean
+}
+
+type PlayerSubscriptionPayload {
+  mutation: MutationType!
+  node: Player
+  updatedFields: [String!]
+  previousValues: PlayerPreviousValues
+}
+
+input PlayerSubscriptionWhereInput {
+  """Logical AND on all given filters."""
+  AND: [PlayerSubscriptionWhereInput!]
+
+  """Logical OR on all given filters."""
+  OR: [PlayerSubscriptionWhereInput!]
+
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [PlayerSubscriptionWhereInput!]
+
+  """
+  The subscription event gets dispatched when it's listed in mutation_in
+  """
+  mutation_in: [MutationType!]
+
+  """
+  The subscription event gets only dispatched when one of the updated fields names is included in this list
+  """
+  updatedFields_contains: String
+
+  """
+  The subscription event gets only dispatched when all of the field names included in this list have been updated
+  """
+  updatedFields_contains_every: [String!]
+
+  """
+  The subscription event gets only dispatched when some of the field names included in this list have been updated
+  """
+  updatedFields_contains_some: [String!]
+  node: PlayerWhereInput
+}
+
+input PlayerUpdateManyMutationInput {
+  online: Boolean
+}
+
+input PlayerWhereInput {
+  """Logical AND on all given filters."""
+  AND: [PlayerWhereInput!]
+
+  """Logical OR on all given filters."""
+  OR: [PlayerWhereInput!]
+
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [PlayerWhereInput!]
+  online: Boolean
+
+  """All values that are not equal to given value."""
+  online_not: Boolean
+  gamesHistory_every: MatchWhereInput
+  gamesHistory_some: MatchWhereInput
+  gamesHistory_none: MatchWhereInput
+}
+
 type Post implements Node {
   id: ID!
   createdAt: DateTime!
@@ -70,7 +367,7 @@ type Post implements Node {
   isPublished: Boolean!
   title: String!
   text: String!
-  author(where: UserWhereInput): User!
+  author: User!
 }
 
 """A connection to a list of items."""
@@ -148,6 +445,9 @@ input PostSubscriptionWhereInput {
   """Logical OR on all given filters."""
   OR: [PostSubscriptionWhereInput!]
 
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [PostSubscriptionWhereInput!]
+
   """
   The subscription event gets dispatched when it's listed in mutation_in
   """
@@ -174,7 +474,13 @@ input PostUpdateInput {
   isPublished: Boolean
   title: String
   text: String
-  author: UserUpdateOneWithoutPostsInput
+  author: UserUpdateOneRequiredWithoutPostsInput
+}
+
+input PostUpdateManyMutationInput {
+  isPublished: Boolean
+  title: String
+  text: String
 }
 
 input PostUpdateManyWithoutAuthorInput {
@@ -209,6 +515,9 @@ input PostWhereInput {
 
   """Logical OR on all given filters."""
   OR: [PostWhereInput!]
+
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [PostWhereInput!]
   id: ID
 
   """All values that are not equal to given value."""
@@ -387,10 +696,16 @@ input PostWhereUniqueInput {
 type Query {
   posts(where: PostWhereInput, orderBy: PostOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): [Post]!
   users(where: UserWhereInput, orderBy: UserOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): [User]!
+  servers(where: ServerWhereInput, orderBy: ServerOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): [Server]!
+  players(where: PlayerWhereInput, orderBy: PlayerOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): [Player]!
+  matches(where: MatchWhereInput, orderBy: MatchOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): [Match]!
   post(where: PostWhereUniqueInput!): Post
   user(where: UserWhereUniqueInput!): User
   postsConnection(where: PostWhereInput, orderBy: PostOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): PostConnection!
   usersConnection(where: UserWhereInput, orderBy: UserOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): UserConnection!
+  serversConnection(where: ServerWhereInput, orderBy: ServerOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): ServerConnection!
+  playersConnection(where: PlayerWhereInput, orderBy: PlayerOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): PlayerConnection!
+  matchesConnection(where: MatchWhereInput, orderBy: MatchOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): MatchConnection!
 
   """Fetches an object given its ID"""
   node(
@@ -399,9 +714,205 @@ type Query {
   ): Node
 }
 
+enum Region {
+  Europe
+  Asia
+  NorthAmerica
+  SouthAmerica
+}
+
+type Server {
+  region: [Region!]!
+  players(where: PlayerWhereInput, orderBy: PlayerOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): [Player!]
+  title: String
+  playersOnline: Int
+  math(where: MatchWhereInput, orderBy: MatchOrderByInput, skip: Int, after: String, before: String, first: Int, last: Int): [Match!]
+}
+
+"""A connection to a list of items."""
+type ServerConnection {
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """A list of edges."""
+  edges: [ServerEdge]!
+  aggregate: AggregateServer!
+}
+
+input ServerCreateInput {
+  title: String
+  playersOnline: Int
+  region: ServerCreateregionInput
+  players: PlayerCreateManyInput
+  math: MatchCreateManyInput
+}
+
+input ServerCreateregionInput {
+  set: [Region!]
+}
+
+"""An edge in a connection."""
+type ServerEdge {
+  """The item at the end of the edge."""
+  node: Server!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+enum ServerOrderByInput {
+  title_ASC
+  title_DESC
+  playersOnline_ASC
+  playersOnline_DESC
+  id_ASC
+  id_DESC
+  updatedAt_ASC
+  updatedAt_DESC
+  createdAt_ASC
+  createdAt_DESC
+}
+
+type ServerPreviousValues {
+  region: [Region!]!
+  title: String
+  playersOnline: Int
+}
+
+type ServerSubscriptionPayload {
+  mutation: MutationType!
+  node: Server
+  updatedFields: [String!]
+  previousValues: ServerPreviousValues
+}
+
+input ServerSubscriptionWhereInput {
+  """Logical AND on all given filters."""
+  AND: [ServerSubscriptionWhereInput!]
+
+  """Logical OR on all given filters."""
+  OR: [ServerSubscriptionWhereInput!]
+
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [ServerSubscriptionWhereInput!]
+
+  """
+  The subscription event gets dispatched when it's listed in mutation_in
+  """
+  mutation_in: [MutationType!]
+
+  """
+  The subscription event gets only dispatched when one of the updated fields names is included in this list
+  """
+  updatedFields_contains: String
+
+  """
+  The subscription event gets only dispatched when all of the field names included in this list have been updated
+  """
+  updatedFields_contains_every: [String!]
+
+  """
+  The subscription event gets only dispatched when some of the field names included in this list have been updated
+  """
+  updatedFields_contains_some: [String!]
+  node: ServerWhereInput
+}
+
+input ServerUpdateManyMutationInput {
+  title: String
+  playersOnline: Int
+  region: ServerUpdateregionInput
+}
+
+input ServerUpdateregionInput {
+  set: [Region!]
+}
+
+input ServerWhereInput {
+  """Logical AND on all given filters."""
+  AND: [ServerWhereInput!]
+
+  """Logical OR on all given filters."""
+  OR: [ServerWhereInput!]
+
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [ServerWhereInput!]
+  title: String
+
+  """All values that are not equal to given value."""
+  title_not: String
+
+  """All values that are contained in given list."""
+  title_in: [String!]
+
+  """All values that are not contained in given list."""
+  title_not_in: [String!]
+
+  """All values less than the given value."""
+  title_lt: String
+
+  """All values less than or equal the given value."""
+  title_lte: String
+
+  """All values greater than the given value."""
+  title_gt: String
+
+  """All values greater than or equal the given value."""
+  title_gte: String
+
+  """All values containing the given string."""
+  title_contains: String
+
+  """All values not containing the given string."""
+  title_not_contains: String
+
+  """All values starting with the given string."""
+  title_starts_with: String
+
+  """All values not starting with the given string."""
+  title_not_starts_with: String
+
+  """All values ending with the given string."""
+  title_ends_with: String
+
+  """All values not ending with the given string."""
+  title_not_ends_with: String
+  playersOnline: Int
+
+  """All values that are not equal to given value."""
+  playersOnline_not: Int
+
+  """All values that are contained in given list."""
+  playersOnline_in: [Int!]
+
+  """All values that are not contained in given list."""
+  playersOnline_not_in: [Int!]
+
+  """All values less than the given value."""
+  playersOnline_lt: Int
+
+  """All values less than or equal the given value."""
+  playersOnline_lte: Int
+
+  """All values greater than the given value."""
+  playersOnline_gt: Int
+
+  """All values greater than or equal the given value."""
+  playersOnline_gte: Int
+  players_every: PlayerWhereInput
+  players_some: PlayerWhereInput
+  players_none: PlayerWhereInput
+  math_every: MatchWhereInput
+  math_some: MatchWhereInput
+  math_none: MatchWhereInput
+}
+
 type Subscription {
   post(where: PostSubscriptionWhereInput): PostSubscriptionPayload
   user(where: UserSubscriptionWhereInput): UserSubscriptionPayload
+  server(where: ServerSubscriptionWhereInput): ServerSubscriptionPayload
+  player(where: PlayerSubscriptionWhereInput): PlayerSubscriptionPayload
+  match(where: MatchSubscriptionWhereInput): MatchSubscriptionPayload
 }
 
 type User implements Node {
@@ -485,6 +996,9 @@ input UserSubscriptionWhereInput {
   """Logical OR on all given filters."""
   OR: [UserSubscriptionWhereInput!]
 
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [UserSubscriptionWhereInput!]
+
   """
   The subscription event gets dispatched when it's listed in mutation_in
   """
@@ -514,10 +1028,15 @@ input UserUpdateInput {
   posts: PostUpdateManyWithoutAuthorInput
 }
 
-input UserUpdateOneWithoutPostsInput {
+input UserUpdateManyMutationInput {
+  email: String
+  password: String
+  name: String
+}
+
+input UserUpdateOneRequiredWithoutPostsInput {
   create: UserCreateWithoutPostsInput
   connect: UserWhereUniqueInput
-  delete: Boolean
   update: UserUpdateWithoutPostsDataInput
   upsert: UserUpsertWithoutPostsInput
 }
@@ -539,6 +1058,9 @@ input UserWhereInput {
 
   """Logical OR on all given filters."""
   OR: [UserWhereInput!]
+
+  """Logical NOT on all given filters combined by AND."""
+  NOT: [UserWhereInput!]
   id: ID
 
   """All values that are not equal to given value."""
