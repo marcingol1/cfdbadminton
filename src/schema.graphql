@@ -5,6 +5,48 @@ type Query {
   drafts: [Post!]!
   post(id: ID!): Post
   me: User
+  servers: [Server!]!
+  server(id: ID!): Server
+  players: [Player!]!
+  player(id: ID!): Player
+}
+
+type Server {
+  id: ID!
+  region: [Region!]!
+  players: [Player!]!
+}
+
+enum GameType {
+  Deathmatch
+  CaptureTheFlag
+  Arena
+}
+enum Region {
+  Europe
+  Asia
+  NorthAmerica
+  SouthAmerica
+}
+
+type Player {
+  id: ID!
+  online: Boolean
+  gamesHistory: [Match!]!
+}
+
+type Match {
+  id: ID!
+  score: Float
+  gameType: GameType
+  players: [Player!]!
+}
+type Server {
+  id: ID!
+  title: String
+  playersOnline: Int
+  region: Region
+  match: Match
 }
 
 type Mutation {
