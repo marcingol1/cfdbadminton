@@ -15,3 +15,34 @@ type User {
   name: String!
   posts: [Post!]!
 }
+
+type Server {
+  region: [Region!]!
+  players: [Player!]!
+  title: String
+  playersOnline: Int
+  math: [Match!]!
+}
+
+enum GameType {
+  Deathmatch
+  CaptureTheFlag
+  Arena
+}
+enum Region {
+  Europe
+  Asia
+  NorthAmerica
+  SouthAmerica
+}
+
+type Player {
+  online: Boolean
+  gamesHistory: [Match!]!
+}
+
+type Match {
+  score: Float
+  gameType: GameType
+  players: [Player!]!
+}
