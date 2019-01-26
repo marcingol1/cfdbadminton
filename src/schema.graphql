@@ -33,4 +33,5 @@ type User {
   email: String!
   name: String!
   posts: [Post!]!
+  players: [Player!]!
 }
