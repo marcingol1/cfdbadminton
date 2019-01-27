@@ -1,18 +1,19 @@
 {
   "name": "cfdbadminton",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
+  "main": "handler.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcingol1/cfdbadminton.git"
+  },
+  "author": "Marcin Gol",
   "license": "ISC",
-  "dependencies": {
-    "serverless": "^1.33.2",
-    "serverless-haskell": "^0.8.4"
-  }
+  "bugs": {
+    "url": "https://github.com/marcingol1/cfdbadminton/issues"
+  },
+  "homepage": "https://github.com/marcingol1/cfdbadminton#readme"
 }
