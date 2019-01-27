@@ -1,6 +1,4 @@
-# package directories
-node_modules
-jspm_packages
-
-# Serverless directories
-.serverless
+.stack-work/
+node_modules/
+.serverless/
+cfdbadminton.cabal
