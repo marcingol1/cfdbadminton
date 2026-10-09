@@ -82,15 +82,15 @@ store listings, age rating, privacy policy, TestFlight and Play internal testing
 Doubles 2v2, character classes, more arenas, a destructible net, cosmetics, a campaign,
 a level editor, online spectating.
 
-## Decisions needed before implementation
+## Decisions (approved 2026-10-09)
 
-| # | Decision | Recommendation | Alternative |
-|---|---|---|---|
-| D1 | **Core loop** | **Real-time rallies, plus a Worms-style Revenge Turn for the player who lost the point** | Fully turn-based (each hit is an aimed Worms turn): simpler and easier online, but loses the badminton feel |
-| D2 | Revenge target | **May move and dodge** | Frozen target (pure Worms). Offered as a match option either way |
-| D3 | Default match length | **11 points, win by 2, cap 15, single game** | 21 (real badminton), or best of 3 |
-| D4 | Existing NestJS scaffold | **Remove in M0**, write a fresh server in M5 | Upgrade and keep it now |
-| D5 | Engine | **TypeScript + Phaser + custom sim + Capacitor** | Godot or Unity (stronger editors, weaker web-first iteration) |
-| D6 | Art direction | **Cartoon vector or chunky sprites**, no gore | Pixel art |
-| D7 | Web hosting | **Cloudflare Pages or GitHub Pages** (free, static) | Vercel or Netlify |
-| D8 | Name | "Deadminton" (working title) | Your call |
+| # | Decision | Outcome |
+|---|---|---|
+| D1 | Core loop | ✅ **Real-time rallies, plus a Worms-style Revenge Turn for the player who lost the point** |
+| D2 | Revenge target | ✅ **May move and dodge.** "Classic targeting" (frozen target) is a match option |
+| D3 | Default match length | ✅ **11 points, win by 2, cap 15, single game** |
+| D4 | Existing NestJS scaffold | ✅ **Removed in M0.** Written from scratch; only the idea stays |
+| D5 | Engine | ✅ **TypeScript + Phaser + custom sim + Capacitor** |
+| D6 | Art direction | ✅ **Pixel art.** See `GAME_DESIGN.md` §15. All MVP art is drawn in code; no external assets are needed |
+| D7 | Web hosting | ✅ (default) **GitHub Pages** via GitHub Actions |
+| D8 | Name | ✅ (default) **"Deadminton"**, still a working title |

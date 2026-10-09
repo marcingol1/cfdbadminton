@@ -1,6 +1,6 @@
 # Deadminton — Game Design Document
 
-> Working title. Status: **draft for approval**. All numbers are *starting tuning values*;
+> Working title. Status: **approved 2026-10-09** (see the decisions in `ROADMAP.md`). All numbers are *starting tuning values*;
 > they will be tuned with headless bot-vs-bot simulations (see `TECHNICAL_PLAN.md`).
 
 ## 1. Pitch
@@ -303,3 +303,28 @@ replay sharing links.
 - Use only original names and art. Avoid Worms trademarks and signature items (no "Holy
   Hand Grenade", "Banana Bomb", "Sheep").
 - Use cartoon violence only (§9).
+
+## 15. Art direction: pixel art
+
+- **Internal resolution of 480 × 270** (16:9), scaled up by whole numbers (×2, ×3, ×4) with
+  nearest-neighbor sampling. The result is crisp pixels on every screen, from a phone to 4K.
+- **Scale:** 24 px per meter. The whole arena (13.4 m court + 2 × 2 m run-off ≈ 17.4 m) fits
+  the width with room for the HUD. Players are about 40 px tall, a chunky, readable 16-bit
+  size. The shuttle is 3 px with a short motion trail, so it stays readable at smash speed.
+- **Palette:** one fixed 32-color palette (Lospec "Endesga 32", free to use). Player 1 is
+  warm red and orange, player 2 is cool blue and teal. Danger (fuses, mines, explosions)
+  is always yellow on black, so threats are easy to read.
+- **Characters:** chibi-proportioned badminton players with a headband, shorts and an
+  oversized racket. Animations: idle, run, jump, swing (3 variants), throw, hurt, stun,
+  ragdoll, tombstone.
+- **Effects:** pixel particle bursts, chunky dithered smoke, screen shake, a 2–4 frame
+  hit-stop on smashes, and pixels flying out of craters.
+- **HUD:** a pixel bitmap font, scoreboard, HP bars, wind arrow, weapon hotbar and fuse dial.
+- **Asset pipeline:**
+  - **MVP (M0–M3):** all sprites are pixel grids defined in code and turned into textures
+    at boot. Sound effects are generated procedurally with WebAudio (sfxr-style). You
+    don't need to deliver anything.
+  - **Polish (M4):** we either commission a pixel artist using this document as the
+    brief, or swap in hand-made sprite sheets. Sprites are addressed by animation name,
+    so replacing the art never touches game code. Music comes from a commissioned or
+    licensed source.
