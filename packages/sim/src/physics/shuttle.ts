@@ -57,12 +57,13 @@ export function advanceFlight(b: FlightBody, env: FlightEnv, dt = SUBSTEP_DT): F
   if (px < 0 !== b.x < 0) {
     const t = px / (px - b.x);
     const yCross = py + (b.y - py) * t;
-    if (yCross <= NET_HEIGHT) {
+    // The net spans floor level to the tape; a crater under it is open space.
+    if (yCross <= NET_HEIGHT && yCross >= 0) {
       // Dead-net: kill most of the horizontal speed and drop on the side it came from.
       b.x = px < 0 ? -0.02 : 0.02;
-      b.y = yCross > 0 ? yCross : 0.01;
+      b.y = yCross;
       b.vx = -b.vx * 0.15;
-      b.vy = b.vy > 0 ? 0 : b.vy * 0.5;
+      if (b.vy > 0) b.vy = 0;
       return { kind: 'net', y: yCross };
     }
   }

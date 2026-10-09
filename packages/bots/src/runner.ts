@@ -12,6 +12,11 @@ export interface BotMatchResult {
   longestRally: number;
   pointReasons: Record<string, number>;
   shots: Record<string, number>;
+  winReason: string | null;
+  /** Damage dealt by source (explosion, smash, lead, shock, fall, pit). */
+  damage: Record<string, number>;
+  /** Weapons used: loaded shots on hits, throws, Revenge Turn picks. */
+  weapons: Record<string, number>;
   final: MatchState;
 }
 
@@ -35,6 +40,9 @@ export function runBotMatch(
     longestRally: 0,
     pointReasons: {},
     shots: {},
+    winReason: null,
+    damage: {},
+    weapons: {},
     final: state,
   };
   let rallyHits = 0;
@@ -45,6 +53,15 @@ export function runBotMatch(
         result.hits++;
         rallyHits++;
         result.shots[e.shot] = (result.shots[e.shot] ?? 0) + 1;
+      } else if (e.type === 'loaded') {
+        result.weapons[e.weapon] = (result.weapons[e.weapon] ?? 0) + 1;
+      } else if (e.type === 'damage') {
+        result.damage[e.source] = (result.damage[e.source] ?? 0) + e.amount;
+      } else if (e.type === 'throw') {
+        result.weapons[e.weapon] = (result.weapons[e.weapon] ?? 0) + 1;
+      } else if (e.type === 'revengeFire') {
+        const k = e.weapon ?? 'skip';
+        result.weapons[k] = (result.weapons[k] ?? 0) + 1;
       } else if (e.type === 'point') {
         result.rallies++;
         result.longestRally = Math.max(result.longestRally, rallyHits);
@@ -55,6 +72,7 @@ export function runBotMatch(
     onEvents?.(events, state);
   }
   result.winner = state.winner;
+  result.winReason = state.winReason;
   result.score = [state.score[0], state.score[1]];
   result.ticks = state.tick;
   return result;

@@ -259,6 +259,7 @@ export type SimEvent =
   | { type: 'select'; player: PlayerId; weapon: WeaponId | null }
   | { type: 'fuse'; player: PlayerId; seconds: number }
   | { type: 'throw'; player: PlayerId; weapon: WeaponId }
+  | { type: 'loaded'; player: PlayerId; weapon: ShuttleWeapon }
   | { type: 'mineArmed'; x: number }
   | { type: 'mineTriggered'; x: number }
   | { type: 'revengeStart'; shooter: PlayerId; target: PlayerId }

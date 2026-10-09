@@ -47,6 +47,8 @@ import { canRevenge, startRevenge, stepRevenge } from './revenge';
 
 /** R-01: hard cap on points for each target score. */
 export const POINT_CAP: Record<PointsToWin, number> = { 7: 10, 11: 15, 21: 30 };
+/** A rally with no hit for this long is ended where the shuttle is (stuck-shuttle safety net). */
+const STUCK_RALLY_TICKS = 30 * 60;
 /** R-05: HP restored at the start of each new game. */
 export const NEW_GAME_HEAL = 20;
 
@@ -215,6 +217,7 @@ function applyShotWeapons(
   s.weapon = w as ShuttleWeapon;
   if (w === 'frag') s.fuseTicks = p.fuse * 60;
   p.rallyWeapon = null;
+  events.push({ type: 'loaded', player: p.id, weapon: s.weapon });
 }
 
 function launchShuttle(
@@ -626,6 +629,12 @@ export function step(state: MatchState, inputs: readonly [InputFrame, InputFrame
       state.rally.ticksSinceHit++;
       state.playTicks++;
       stepRallyShuttle(state, events);
+      if (state.phase === 'rally' && state.rally.ticksSinceHit > STUCK_RALLY_TICKS) {
+        // Safety net: a shuttle that somehow never comes down is judged where it is.
+        const s = state.shuttle;
+        const verdict = judgeLanding(s.x, state.rally.lastHitter, state.rally.isServe);
+        awardPoint(state, verdict.winner, verdict.reason, s.x, events);
+      }
       break;
     }
     case 'point': {

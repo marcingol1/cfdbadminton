@@ -14,6 +14,14 @@ export interface BotProfile {
   shotIQ: number;
   /** Probability of smashing when a smash is available. */
   aggression: number;
+  /** Chance to load a weapon shuttle into a shot (and to throw a mine). */
+  weaponUse: number;
+  /** Revenge Turn aim error, degrees (and Air Strike cursor error × 0.05 m). */
+  aimNoise: number;
+  /** Revenge Turn charge error, fraction of full power. */
+  powerNoise: number;
+  /** Chance to notice an incoming projectile and dodge it. */
+  dodge: number;
 }
 
 export const DIFFICULTIES: Record<Difficulty, BotProfile> = {
@@ -25,6 +33,10 @@ export const DIFFICULTIES: Record<Difficulty, BotProfile> = {
     timingNoise: 2.5,
     shotIQ: 0.35,
     aggression: 0.3,
+    weaponUse: 0.1,
+    aimNoise: 10,
+    powerNoise: 0.12,
+    dodge: 0.3,
   },
   medium: {
     name: 'Medium',
@@ -34,6 +46,10 @@ export const DIFFICULTIES: Record<Difficulty, BotProfile> = {
     timingNoise: 1.2,
     shotIQ: 0.65,
     aggression: 0.6,
+    weaponUse: 0.22,
+    aimNoise: 4,
+    powerNoise: 0.05,
+    dodge: 0.7,
   },
   hard: {
     name: 'Hard',
@@ -43,5 +59,9 @@ export const DIFFICULTIES: Record<Difficulty, BotProfile> = {
     timingNoise: 0.4,
     shotIQ: 0.92,
     aggression: 0.85,
+    weaponUse: 0.32,
+    aimNoise: 1.2,
+    powerNoise: 0.015,
+    dodge: 1,
   },
 };

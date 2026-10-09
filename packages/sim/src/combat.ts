@@ -68,6 +68,33 @@ export function landFromKnock(p: PlayerState, events: SimEvent[]): void {
   if (drop > f.safeHeight) applyDamage(p, (drop - f.safeHeight) * f.damagePerMeter, 'fall', events);
 }
 
+/** Falloff factor (0..1) and push direction of a blast on a player, or null if out of range. */
+function blastHit(
+  p: PlayerState,
+  x: number,
+  y: number,
+  r: number,
+): { f: number; nx: number; ny: number } | null {
+  const by = y < p.y + BODY_LOW ? p.y + BODY_LOW : y > p.y + BODY_HIGH ? p.y + BODY_HIGH : y;
+  const dx = p.x - x;
+  const dy = by - y;
+  const d = hypot2(dx, dy);
+  if (d >= r) return null;
+  // Push away from the blast, always with some lift.
+  let nx = d > 0.001 ? dx / d : 0;
+  let ny = (d > 0.001 ? dy / d : 1) + 0.7;
+  const n = hypot2(nx, ny);
+  nx /= n;
+  ny /= n;
+  return { f: 1 - d / r, nx, ny };
+}
+
+/** Damage a blast at (x, y) would deal to p, before shields. Used by bots to aim and to dodge. */
+export function blastDamage(p: PlayerState, x: number, y: number, blast: Blast): number {
+  const hit = blastHit(p, x, y, blast.radius);
+  return hit ? blast.damage * hit.f : 0;
+}
+
 /**
  * Damage and knockback fall off linearly from the center to the radius (GAME_DESIGN §9).
  * Also pushes the shuttle, digs a crater, sets off mines and blows up crates in range.
@@ -84,21 +111,10 @@ export function explode(
   const r = blast.radius;
 
   for (const p of state.players) {
-    const by = y < p.y + BODY_LOW ? p.y + BODY_LOW : y > p.y + BODY_HIGH ? p.y + BODY_HIGH : y;
-    const dx = p.x - x;
-    const dy = by - y;
-    const d = hypot2(dx, dy);
-    if (d >= r) continue;
-    const f = 1 - d / r;
-    applyDamage(p, blast.damage * f, 'explosion', events);
-    // Push away from the blast, always with some lift.
-    const len = d > 0.001 ? d : 1;
-    let nx = d > 0.001 ? dx / len : 0;
-    let ny = (d > 0.001 ? dy / len : 1) + 0.7;
-    const n = hypot2(nx, ny);
-    nx /= n;
-    ny /= n;
-    knockback(p, nx * blast.knockback * f, ny * blast.knockback * f);
+    const hit = blastHit(p, x, y, r);
+    if (!hit) continue;
+    applyDamage(p, blast.damage * hit.f, 'explosion', events);
+    knockback(p, hit.nx * blast.knockback * hit.f, hit.ny * blast.knockback * hit.f);
   }
 
   const s = state.shuttle;

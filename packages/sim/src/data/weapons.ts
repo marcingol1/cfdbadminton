@@ -53,8 +53,8 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     damage: 35,
     knockback: 9,
   }),
-  shock: w({ id: 'shock', name: 'Shock Shuttle', category: 'loaded', damage: 12 }),
-  lead: w({ id: 'lead', name: 'Lead Shuttle', category: 'loaded', damage: 25, knockback: 8 }),
+  shock: w({ id: 'shock', name: 'Shock Shuttle', category: 'loaded', damage: 10 }),
+  lead: w({ id: 'lead', name: 'Lead Shuttle', category: 'loaded', damage: 18, knockback: 8 }),
   cluster: w({
     id: 'cluster',
     name: 'Cluster Shuttle',
@@ -79,7 +79,7 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     name: 'Rocket',
     category: 'revenge',
     radius: 1.5,
-    damage: 20,
+    damage: 14,
     knockback: 7,
   }),
   mortar: w({
@@ -88,7 +88,7 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     category: 'revenge',
     delay: 2,
     radius: 1.0,
-    damage: 12,
+    damage: 10,
     knockback: 5,
   }),
   homing: w({
@@ -97,7 +97,7 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     category: 'revenge',
     delay: 4,
     radius: 1.5,
-    damage: 30,
+    damage: 24,
     knockback: 8,
   }),
   airstrike: w({
@@ -106,7 +106,7 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     category: 'revenge',
     delay: 6,
     radius: 1.0,
-    damage: 15,
+    damage: 12,
     knockback: 6,
   }),
   medkit: w({ id: 'medkit', name: 'Medkit', category: 'utility', damage: 25 }),

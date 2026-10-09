@@ -27,7 +27,7 @@ export function shoulderOf(p: PlayerState): { x: number; y: number } {
 
 export const TERRAIN_STEP = 0.1;
 export const TERRAIN_COLUMNS = Math.round((2 * WALL_X) / TERRAIN_STEP);
-export const MAX_CRATER_DEPTH = 0.6;
+export const MAX_CRATER_DEPTH = 0.45;
 /** Ground height reported for pits (effectively bottomless). */
 export const PIT_Y = -50;
 
@@ -61,7 +61,7 @@ export function carveCrater(state: MatchState, x: number, y: number, radius: num
     const cx = -WALL_X + (i + 0.5) * TERRAIN_STEP;
     const dx = cx - x;
     if (dx * dx >= radius * radius) continue;
-    const bottom = y - Math.sqrt(radius * radius - dx * dx) * 0.45;
+    const bottom = y - Math.sqrt(radius * radius - dx * dx) * 0.35;
     const current = state.terrain[i]!;
     state.terrain[i] = Math.max(-MAX_CRATER_DEPTH, Math.min(current, bottom));
   }
