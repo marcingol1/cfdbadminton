@@ -1,0 +1,10 @@
+{
+  "name": "@deadminton/sim",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic, headless Deadminton simulation core.",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
