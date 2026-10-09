@@ -8,6 +8,7 @@ milestone M2). It ships to iOS and Android later through Capacitor.
 - 📐 [Game design and rules](docs/GAME_DESIGN.md)
 - 🛠️ [Technical plan](docs/TECHNICAL_PLAN.md)
 - 🗺️ [Roadmap and decisions](docs/ROADMAP.md)
+- 🤖 [How the bots and seeds work](docs/AI_AND_SEEDS.md)
 
 ## Quick start
 

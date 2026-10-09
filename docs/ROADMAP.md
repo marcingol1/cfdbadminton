@@ -28,7 +28,7 @@ Sizes are relative: S < M < L.
   snapshot/restore round-trip test.
 - **Done when:** `npm run dev` shows an empty court rendered from sim state, and CI is green.
 
-### M1 — "Just Badminton" (L) ← the most important milestone — 🟡 built, awaiting playtest
+### M1 — "Just Badminton" (L) ← the most important milestone — ✅ done (playtested and approved 2026-10-09; gameplay kept as is)
 
 - Court, net, the Hall arena, shuttle physics with drag and wind, player movement and
   jumping, the hit model with shot types and timing quality.

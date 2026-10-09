@@ -39,6 +39,13 @@ function loadSettings(): UiSettings {
 
 const randomSeed = () => (Math.random() * 0xffffffff) >>> 0;
 
+/** `?seed=123` pins the seed of every match started from the menu (see docs/AI_AND_SEEDS.md). */
+function urlSeed(): number | null {
+  const raw = new URLSearchParams(window.location.search).get('seed');
+  if (raw === null || !/^\d+$/.test(raw)) return null;
+  return Number(raw) >>> 0;
+}
+
 class App implements SceneHost {
   session: MatchSession | null = null;
   showIntent = false;
@@ -133,7 +140,7 @@ class App implements SceneHost {
 
   private start(mode: SessionMode): void {
     if (mode !== 'attract') this.lastMode = mode;
-    const seed = randomSeed();
+    const seed = (mode !== 'attract' ? urlSeed() : null) ?? randomSeed();
     let controllers: [Controller, Controller];
     const s = this.settings;
     switch (mode) {
