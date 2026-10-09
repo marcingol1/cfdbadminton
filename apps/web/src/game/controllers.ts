@@ -1,5 +1,5 @@
 import { Bot } from '@deadminton/bots';
-import type { Difficulty } from '@deadminton/bots';
+import type { Difficulty, Personality } from '@deadminton/bots';
 import { NEUTRAL_INPUT } from '@deadminton/sim';
 import type { InputFrame, MatchState, PlayerId } from '@deadminton/sim';
 import type { InputDevice } from '../input/device';
@@ -36,12 +36,32 @@ export class BotController implements Controller {
   readonly kind = 'bot';
   readonly bot: Bot;
   readonly label: string;
-  constructor(id: PlayerId, difficulty: Difficulty, seed: number) {
-    this.bot = new Bot(id, difficulty, seed);
-    this.label = `BOT ${this.bot.profile.name.toUpperCase()}`;
+  constructor(
+    id: PlayerId,
+    difficulty: Difficulty,
+    seed: number,
+    personality: Personality = 'balanced',
+  ) {
+    this.bot = new Bot(id, difficulty, seed, personality);
+    this.label = `${this.bot.profile.name} ${this.bot.traits.name}`.toUpperCase();
   }
 
   sample(state: MatchState): InputFrame {
     return this.bot.think(state);
+  }
+}
+
+/** Plays back one player's recorded inputs (replay mode). */
+export class ReplayController implements Controller {
+  readonly kind = 'bot';
+  constructor(
+    private readonly id: PlayerId,
+    private readonly frames: readonly (readonly [InputFrame, InputFrame])[],
+    readonly label: string,
+  ) {}
+
+  sample(state: MatchState): InputFrame {
+    // state.tick is the number of ticks already played, i.e. the index of the next frame.
+    return this.frames[state.tick]?.[this.id] ?? NEUTRAL_INPUT;
   }
 }

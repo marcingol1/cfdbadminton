@@ -1,8 +1,8 @@
-import { DT, createMatch, step } from '@deadminton/sim';
-import type { MatchConfig, MatchState, PlayerId, SimEvent } from '@deadminton/sim';
+import { DT, ReplayRecorder, createMatch, hashState, step } from '@deadminton/sim';
+import type { MatchConfig, MatchState, PlayerId, Replay, SimEvent } from '@deadminton/sim';
 import type { Controller } from './controllers';
 
-export type SessionMode = 'vsBot' | 'local2p' | 'watch' | 'attract';
+export type SessionMode = 'vsBot' | 'local2p' | 'watch' | 'attract' | 'replay';
 
 export interface MatchStats {
   rallies: number;
@@ -30,6 +30,14 @@ const MAX_STEPS_PER_FRAME = 40;
 export class MatchSession {
   readonly state: MatchState;
   readonly seed: number;
+  /** Every match except the title-screen one is recorded (see docs/AI_AND_SEEDS.md). */
+  private readonly recorder: ReplayRecorder | null;
+  private finished: Replay | null = null;
+  /** In replay mode: the replay being shown, and whether it reproduced exactly. */
+  readonly source: Replay | null;
+  verified: boolean | null = null;
+  /** Live tuning edits during a match make its replay unverifiable. */
+  tuningEdited = false;
   speed = 1;
   paused = false;
   /** Render-only freeze after big hits (single player only; the sim is unaffected). */
@@ -51,9 +59,15 @@ export class MatchSession {
     readonly controllers: [Controller, Controller],
     config: Partial<MatchConfig>,
     seed: number,
+    source: Replay | null = null,
   ) {
     this.seed = seed;
+    this.source = source;
     this.state = createMatch(config, seed);
+    this.recorder =
+      mode === 'attract' || mode === 'replay'
+        ? null
+        : new ReplayRecorder(this.state.config, seed, [controllers[0].label, controllers[1].label]);
     this.prev = {
       p: [
         { x: 0, y: 0 },
@@ -62,6 +76,11 @@ export class MatchSession {
       s: { x: 0, y: 0 },
     };
     this.capturePrev();
+  }
+
+  /** The recorded replay, once the match is over. */
+  get replay(): Replay | null {
+    return this.finished;
   }
 
   /** Interpolation factor between the previous and current tick. */
@@ -98,7 +117,13 @@ export class MatchSession {
     this.capturePrev();
     const s = this.state;
     const frame = [this.controllers[0].sample(s), this.controllers[1].sample(s)] as const;
+    if (this.recorder && !this.finished) this.recorder.push(frame);
     const events = step(s, frame);
+    if (s.phase === 'matchOver' && this.recorder && !this.finished)
+      this.finished = this.recorder.finish(s);
+    if (this.source && this.verified === null && s.tick === this.source.ticks) {
+      this.verified = hashState(s) === this.source.finalHash;
+    }
     this.record(events);
     return events;
   }

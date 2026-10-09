@@ -30,6 +30,7 @@ npm run dev        # opens the game at http://localhost:5173
 | Throw mine, fire | K or right mouse (hold to charge) | Y / RT     | FIRE       |
 | Revenge aim      | W / S                             | Left stick | Left stick |
 | Pause            | Esc                               | Start      | ❚❚ button  |
+| FPS counter      | F3                                |            | pause menu |
 | Tuning panel     | \` (backtick)                     |            |            |
 
 Hold a direction while you swing: **up** → clear / lift, **down** → drop / net shot,
@@ -53,7 +54,8 @@ Local 2 players: the left player uses WASD, L-Shift (jump), Space (swing), F (fi
 ```bash
 npm test              # unit tests (rules are tested by their R-xx IDs)
 npm run check         # lint + format + typecheck + tests (what CI runs)
-npm run simbatch -- --a hard --b medium --n 200   # balance report
+npm run simbatch -- --a hard:berserker --b medium:purist --n 200   # balance report
+npm run e2e           # browser smoke tests (Playwright; builds first)
 npm run build         # static web build in apps/web/dist
 ```
 

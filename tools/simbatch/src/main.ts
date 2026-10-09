@@ -1,7 +1,6 @@
 import { parseArgs } from 'node:util';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { DIFFICULTIES, runBotMatch } from '@deadminton/bots';
-import type { Difficulty } from '@deadminton/bots';
+import { parseBotSpec, runBotMatch } from '@deadminton/bots';
 import { ARENAS, SCHEMES, TICK_RATE } from '@deadminton/sim';
 import type { ArenaId, PointsToWin, SchemeId } from '@deadminton/sim';
 
@@ -19,14 +18,9 @@ const { values } = parseArgs({
   },
 });
 
-function difficulty(name: string): Difficulty {
-  if (!(name in DIFFICULTIES))
-    throw new Error(`Unknown bot "${name}". Use: ${Object.keys(DIFFICULTIES).join(', ')}`);
-  return name as Difficulty;
-}
-
-const a = difficulty(values.a);
-const b = difficulty(values.b);
+// "hard" or "hard:berserker" (difficulty:personality; personality defaults to balanced).
+const a = parseBotSpec(values.a);
+const b = parseBotSpec(values.b);
 const n = Number(values.n);
 const seed = Number(values.seed);
 const pointsToWin = Number(values.points) as PointsToWin;
@@ -72,7 +66,7 @@ for (let i = 0; i < n; i++) {
 
 const pct = (v: number, total: number) => `${((100 * v) / total).toFixed(1)}%`;
 const report = {
-  matchup: `${a} (P1) vs ${b} (P2)`,
+  matchup: `${a.difficulty}:${a.personality} (P1) vs ${b.difficulty}:${b.personality} (P2)`,
   scheme,
   arena,
   revengeTurns: values.revenge,

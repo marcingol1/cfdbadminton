@@ -19,3 +19,4 @@ export * from './rules/revenge';
 export * from './rules/match';
 export * from './predict';
 export * from './snapshot';
+export * from './replay';

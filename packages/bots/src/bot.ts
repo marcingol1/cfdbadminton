@@ -42,8 +42,8 @@ import type {
   TrajectoryPoint,
   WeaponId,
 } from '@deadminton/sim';
-import { DIFFICULTIES } from './profiles';
-import type { BotProfile, Difficulty } from './profiles';
+import { DIFFICULTIES, PERSONALITIES } from './profiles';
+import type { BotProfile, Difficulty, Personality, PersonalityTraits } from './profiles';
 
 /** Highest contact point reachable standing / jumping (shoulder 1.45 m + reach). */
 const STANDING_MAX_Y = 2.3;
@@ -54,13 +54,7 @@ const HOME_X = 3.3;
 const MINE_CLEARANCE = 0.9;
 /** On arenas with pits, don't dodge to within this distance of the edge. */
 const PIT_EDGE_ROOM = 2;
-const LOADED_CHOICES: { id: WeaponId; weight: number }[] = [
-  { id: 'frag', weight: 3 },
-  { id: 'lead', weight: 2 },
-  { id: 'shock', weight: 2 },
-  { id: 'cluster', weight: 1 },
-  { id: 'ghost', weight: 1 },
-];
+const LOADED_SHOTS = ['frag', 'lead', 'shock', 'cluster', 'ghost'] as const;
 
 interface Plan {
   /** Rally hit count this plan answers; a new hit invalidates it. */
@@ -92,6 +86,8 @@ interface RevengePlan {
 export class Bot {
   readonly id: PlayerId;
   readonly profile: BotProfile;
+  readonly personality: Personality;
+  readonly traits: PersonalityTraits;
   private readonly rng: RngState;
   private plan: Plan | null = null;
   private serveAt = -1;
@@ -108,9 +104,16 @@ export class Bot {
   lastPlan: Readonly<Plan> | null = null;
   lastRevenge: Readonly<RevengePlan> | null = null;
 
-  constructor(id: PlayerId, profile: BotProfile | Difficulty, seed: number) {
+  constructor(
+    id: PlayerId,
+    profile: BotProfile | Difficulty,
+    seed: number,
+    personality: Personality = 'balanced',
+  ) {
     this.id = id;
     this.profile = typeof profile === 'string' ? DIFFICULTIES[profile] : profile;
+    this.personality = personality;
+    this.traits = PERSONALITIES[personality];
     this.rng = seedRng(seed ^ (id === 0 ? 0x5bd1e995 : 0x1b873593));
   }
 
@@ -224,17 +227,31 @@ export class Bot {
     else if (this.wantWeapon === 'frag' && me.fuse !== this.wantFuse) input.buttons |= Buttons.FUSE;
   }
 
+  /** Chance to load a weapon now: difficulty × personality × (for Balanced) the situation. */
+  private weaponChance(state: MatchState): number {
+    let chance = this.profile.weaponUse * this.traits.weaponUse;
+    if (this.traits.situational) {
+      const opp = state.players[other(this.id)];
+      const lead = state.score[this.id] - state.score[other(this.id)];
+      if (opp.hp <= 40) chance *= 1.8; // Smell blood: go for the KO.
+      if (lead >= 4) chance *= 0.5; // Comfortably ahead: just play badminton.
+      if (lead <= -4) chance *= 1.5; // Far behind on points: the KO is the way back.
+    }
+    return Math.min(0.9, chance);
+  }
+
   private chooseLoadedShot(state: MatchState, me: PlayerState): void {
     this.wantWeapon = null;
-    if (nextFloat(this.rng) >= this.profile.weaponUse) return;
-    const options = LOADED_CHOICES.filter((c) => isAvailable(state, me, c.id));
-    const total = options.reduce((sum, c) => sum + c.weight, 0);
+    if (nextFloat(this.rng) >= this.weaponChance(state)) return;
+    const weights = this.traits.loadedWeights;
+    const options = LOADED_SHOTS.filter((id) => weights[id] > 0 && isAvailable(state, me, id));
+    const total = options.reduce((sum, id) => sum + weights[id], 0);
     if (total === 0) return;
     let r = nextFloat(this.rng) * total;
-    for (const c of options) {
-      r -= c.weight;
+    for (const id of options) {
+      r -= weights[id];
       if (r < 0) {
-        this.wantWeapon = c.id;
+        this.wantWeapon = id;
         break;
       }
     }
@@ -248,7 +265,8 @@ export class Bot {
       const canThrow =
         isAvailable(state, me, 'mine') &&
         activeMines(state, this.id) < WEAPON_TUNING.mine.maxActive;
-      if (canThrow && nextFloat(this.rng) < this.profile.weaponUse * 0.5) this.wantWeapon = 'mine';
+      const chance = Math.min(0.6, this.profile.weaponUse * 0.5 * this.traits.mineUse);
+      if (canThrow && nextFloat(this.rng) < chance) this.wantWeapon = 'mine';
       else if (this.wantWeapon === 'mine') this.wantWeapon = null;
     }
     if (
@@ -300,9 +318,8 @@ export class Bot {
     // A Shock Shuttle costs HP to return: give up the point when HP is low or the lead is safe.
     if (s.weapon === 'shock') {
       const lead = state.score[this.id] - state.score[other(this.id)];
-      const scared =
-        me.hp <= WEAPONS.shock.damage + 10 ||
-        (lead >= 3 && nextFloat(this.rng) < this.profile.shotIQ * 0.5);
+      const hurts = me.hp <= WEAPONS.shock.damage + 10 || lead >= 3;
+      const scared = hurts && nextFloat(this.rng) < this.traits.shockFear * this.profile.shotIQ;
       const end = traj.end && traj.end.kind !== 'net' ? traj.end.x : me.x;
       if (scared) return this.leavePlan(state, end, 0.8);
     }
@@ -347,7 +364,7 @@ export class Bot {
     if (!pick) return null;
 
     // Hot potato: a Frag that would blow up before (or right after) contact is dropped and fled.
-    if (s.weapon === 'frag' && s.fuseTicks < pick.p.t + 15) {
+    if (s.weapon === 'frag' && s.fuseTicks < pick.p.t + this.traits.fragMargin) {
       const blastPoint =
         traj.points[Math.min(traj.points.length - 1, Math.max(0, s.fuseTicks - 1))];
       return this.leavePlan(state, blastPoint?.x ?? pick.p.x, WEAPONS.frag.radius + 1);
@@ -423,7 +440,8 @@ export class Bot {
     const opp = state.players[other(this.id)];
     const oppDepth = Math.abs(opp.x);
     const h = p.y - groundAt(state, p.x - state.players[this.id].facing * 0.7);
-    if (h >= 2.3 && Math.abs(p.x) < 5.2 && nextFloat(r) < this.profile.aggression) return 'forward';
+    const aggression = Math.min(0.97, this.profile.aggression * this.traits.aggression);
+    if (h >= 2.3 && Math.abs(p.x) < 5.2 && nextFloat(r) < aggression) return 'forward';
     if (oppDepth > 4.6) return 'down';
     if (oppDepth < 3.0) return 'up';
     if (h < 1.2) return Math.abs(p.x) < 2 && nextFloat(r) < 0.5 ? 'down' : 'up';
@@ -494,9 +512,19 @@ export class Bot {
       readyAt,
     });
 
-    if (me.hp <= 35 && options.includes('medkit')) return plan('medkit');
+    const attitude = this.traits.revenge;
+    const behind = state.score[other(this.id)] - state.score[this.id];
+    if (me.hp <= (attitude === 'always' ? 20 : 35) && options.includes('medkit'))
+      return plan('medkit');
+    // A Purist only shoots back when it is clearly losing on points; otherwise it patches up.
+    if (attitude === 'utility' && behind < 3) {
+      if (me.hp <= 75 && options.includes('medkit')) return plan('medkit');
+      if (me.shield === 0 && options.includes('shield')) return plan('shield');
+      return plan(null);
+    }
 
-    let best = { score: 2, plan: plan(null) };
+    // A Berserker fires whatever does the most damage, however little.
+    let best = { score: attitude === 'always' ? -Infinity : 2, plan: plan(null) };
     for (const weapon of ['rocket', 'mortar', 'homing'] as const) {
       if (!options.includes(weapon)) continue;
       const cost = me.ammo[weapon] > 0 ? 5 : 0;

@@ -43,8 +43,8 @@ poor one can go long, short or into the net.
 ### What the seed does _not_ decide
 
 - **Your inputs.** In a game against a bot, the match depends on the seed _and_ on exactly
-  what you pressed on each tick, so a seed alone can't replay your match. Recording the
-  inputs too will make that possible; that's the replay feature planned for M3.
+  what you pressed on each tick, so a seed alone can't replay your match. That's why
+  replays record the inputs too (see [Replays](#replays) below).
 - **Visual effects.** Particles, screen shake and the short freeze after a smash use
   ordinary randomness and timing in the renderer. They never feed back into the
   simulation, so they can't change the outcome.
@@ -74,7 +74,7 @@ behind the title screen still get random ones).
 | ---------------- | -------------------------------------------------------------------------------------------------------------- |
 | Balance testing  | `simbatch` plays thousands of seeded bot matches and the results are repeatable                                |
 | Bug reports      | "Seed 123, Hard vs Medium, ball goes through the net at 5–3" can be replayed exactly                           |
-| Replays (M3)     | A replay file is just the seed, the settings and the list of inputs: a few KB                                  |
+| Replays          | A replay file is just the seed, the settings and the list of inputs: a few KB                                  |
 | Online play (M5) | Both players run the same simulation and exchange only inputs; the shared seed keeps wind and errors identical |
 | Tests            | The determinism tests run the same seed twice and compare a hash of the whole state                            |
 
@@ -258,8 +258,46 @@ radius, preferring the net side when it is near a Rooftop pit.
 | `powerNoise` | Revenge charge error              | 12%  | 5%     | 1.5% |
 | `dodge`      | Chance to notice and dodge a shot | 30%  | 70%    | 100% |
 
-### Planned extensions
+### Personalities (M3)
 
-- **M3: personalities.** Purist (plays for points), Berserker (hunts for KOs) and
-  Balanced (expected value) change the weights of those decisions. `simbatch` reports how
-  often each personality wins by points versus by KO.
+Difficulty decides **how well** a bot plays; personality decides **what it wants**. Any
+difficulty can have any personality (menu, or `simbatch --a hard:berserker`).
+
+| Trait                  | Purist                                         | Balanced                                                                        | Berserker                          |
+| ---------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------- |
+| Loads weapon shuttles  | never                                          | `weaponUse` × 1, adjusted by the situation                                      | `weaponUse` × 2.5                  |
+| Situation (Balanced)   | –                                              | ×1.8 if the opponent is ≤ 40 HP, ×0.5 when 4+ points ahead, ×1.5 when 4+ behind | –                                  |
+| Throws mines           | never                                          | normal                                                                          | × 3                                |
+| Favourite loaded shots | –                                              | Frag 3, Lead 2, Shock 2, Cluster 1, Ghost 1                                     | Frag 5, Lead 3, Cluster 2, Shock 1 |
+| Returns a live Frag if | ≥ 30 ticks of fuse to spare                    | ≥ 15 ticks                                                                      | ≥ 4 ticks (reckless)               |
+| Leaves a painful Shock | always (when it hurts)                         | half the time                                                                   | never                              |
+| Smash aggression       | × 1                                            | × 1                                                                             | × 1.25                             |
+| Revenge Turn           | Medkit / Shield / skip unless 3+ points behind | attack only when it's worth it                                                  | always attacks                     |
+
+Measured (Standard, Hall, 60–80 matches each):
+
+- Purist vs Purist: 100% decided on points. Berserker vs Berserker: ~90% by KO.
+- Balanced vs Balanced: ~58% by KO (2000-match run: 57.8%, wins 993–1007).
+- At equal skill, Berserker beats Balanced about 60–40 and Purist about 90–10: weapons
+  are a real advantage. But **skill beats style**: Hard Purist beats Medium Berserker
+  59–1, which keeps the "win by points" road open for good badminton players.
+
+## Replays
+
+Every match you play or watch (except the title-screen one) is recorded as a small JSON
+file: the seed, the full match settings (including tuning), every tick's inputs for both
+players run-length encoded as `[count, moveX1, moveY1, buttons1, moveX2, moveY2, buttons2]`,
+and a hash of the final match state. Bots are recorded like humans (as their inputs), so
+any match replays exactly, including bot-vs-bot, weapons and Revenge Turns.
+
+- **Match over screen:** WATCH REPLAY, SAVE REPLAY (downloads
+  `deadminton-replay-<seed>.json`).
+- **Menu → REPLAYS:** WATCH LAST MATCH (kept in the browser), LOAD REPLAY FILE.
+- **Playback** runs the real simulation from the recorded inputs, with the watch controls
+  (speed, pause, step). At the end it compares the final state hash: _REPLAY VERIFIED ✓_
+  means the match was reproduced bit for bit. A mismatch means the file was edited, or it
+  was recorded by a different version of the game.
+- Changing values in the tuning panel during a match makes that match's replay
+  unverifiable, so it isn't saved as "last match".
+
+The same format is what online play (M5) will send over the network: inputs only.

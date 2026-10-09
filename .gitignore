@@ -7,3 +7,5 @@ coverage
 .vscode/*
 !.vscode/extensions.json
 /tools/simbatch/reports
+test-results
+playwright-report

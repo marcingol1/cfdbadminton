@@ -1,7 +1,16 @@
 import { createMatch, step } from '@deadminton/sim';
 import type { MatchConfig, MatchState, PlayerId, SimEvent } from '@deadminton/sim';
 import { Bot } from './bot';
-import type { BotProfile, Difficulty } from './profiles';
+import type { BotProfile, BotSpec, Difficulty } from './profiles';
+
+/** A bot by difficulty name, custom profile, or difficulty + personality. */
+export type BotArg = Difficulty | BotProfile | BotSpec;
+
+export function makeBot(id: PlayerId, arg: BotArg, seed: number): Bot {
+  if (typeof arg === 'object' && 'personality' in arg)
+    return new Bot(id, arg.difficulty, seed, arg.personality);
+  return new Bot(id, arg, seed);
+}
 
 export interface BotMatchResult {
   winner: PlayerId | null;
@@ -22,15 +31,15 @@ export interface BotMatchResult {
 
 /** Plays a full headless bot-vs-bot match. Deterministic for a given seed. */
 export function runBotMatch(
-  a: BotProfile | Difficulty,
-  b: BotProfile | Difficulty,
+  a: BotArg,
+  b: BotArg,
   seed: number,
   config: Partial<MatchConfig> = {},
   maxTicks = 60 * 60 * 30,
   onEvents?: (events: SimEvent[], state: MatchState) => void,
 ): BotMatchResult {
   const state = createMatch(config, seed);
-  const bots = [new Bot(0, a, seed), new Bot(1, b, seed + 1)] as const;
+  const bots = [makeBot(0, a, seed), makeBot(1, b, seed + 1)] as const;
   const result: BotMatchResult = {
     winner: null,
     score: [0, 0],

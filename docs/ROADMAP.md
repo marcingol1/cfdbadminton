@@ -39,7 +39,7 @@ Sizes are relative: S < M < L.
 - **Done when:** a "Purist" match against the bot is _fun_, playtested on desktop and on a
   phone. **Go/no-go gate:** we don't add weapons until rallies feel good.
 
-### M2 — "Deadly" (L) — 🟡 built, awaiting playtest
+### M2 — "Deadly" (L) — ✅ done (playtested; Revenge Turns made optional and random)
 
 - HP, damage, knockback, death, KO victory and the double-KO rules (R-02…R-07).
 - The terrain heightmap and craters. The Rooftop arena with pits.
@@ -51,19 +51,25 @@ Sizes are relative: S < M < L.
 - **Done when:** every rule `R-xx` has a passing test, and a human can win against a
   Medium bot either by points or by KO.
 
-### M3 — Bots and Showcase (M)
+### M3 — Bots and Showcase (M) — ✅ built
 
 - Full bot brain: intercept planning, shot scoring, weapon utility, Revenge aiming search,
-  dodging.
-- Difficulty profiles (Easy / Medium / Hard) × personalities (Purist / Berserker / Balanced).
+  dodging. _(built during M2)_
+- Difficulty profiles (Easy / Medium / Hard) × **personalities** (Purist / Balanced /
+  Berserker), selectable in the menu and in `simbatch` (`--a hard:berserker`).
 - **Watch mode** (speed 0.5×–8×, pause/step, intent overlay, seed), and attract mode on
   the title screen.
-- `tools/simbatch` with a balance report. A balance pass to hit the targets in the
-  technical plan §6.
-- Replays (seed plus input log): save, load and watch.
+- `tools/simbatch` with a balance report.
+- **Replays**: every match is recorded (seed, settings, run-length-encoded inputs, final
+  state hash). Save to a file, load a file, rewatch the last match; playback verifies it
+  reproduced the original exactly.
 - Local 2-player.
+- **Browser smoke tests in CI** (Playwright): menu, a game vs a bot, a full bot match and
+  its verified replay.
+- FPS counter (F3 / pause menu).
 - **Done when:** a 2000-match batch runs cleanly, the balance targets are met, and Watch
-  mode is fun to watch.
+  mode is fun to watch. _Result: 2000 Medium Balanced vs Medium Balanced matches, 0
+  unfinished, wins 993–1007, 57.8% by KO (target 35–65%)._
 
 **→ MVP release:** deploy the web build to Vercel (production from `master`, a preview for every PR).
 

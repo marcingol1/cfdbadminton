@@ -1,4 +1,4 @@
-import type { Difficulty } from '@deadminton/bots';
+import type { Difficulty, Personality } from '@deadminton/bots';
 import { REVENGE_TURN_TICKS } from '@deadminton/sim';
 import type {
   ArenaId,
@@ -16,12 +16,16 @@ import { VIEW_H, VIEW_W, sx, sy } from '../render/view';
 import { keyHints } from './keyhints';
 import type { KeyLayout } from './keyhints';
 
-export type Screen = 'menu' | 'help' | 'hud' | 'pause' | 'over';
+export type Screen = 'menu' | 'help' | 'replays' | 'hud' | 'pause' | 'over';
 
 export interface UiSettings {
   difficulty: Difficulty;
   botA: Difficulty;
   botB: Difficulty;
+  /** Personality of the bot you play against, and of the two bots in Watch mode. */
+  style: Personality;
+  styleA: Personality;
+  styleB: Personality;
   pointsToWin: PointsToWin;
   scheme: SchemeId;
   arena: ArenaId;
@@ -30,11 +34,18 @@ export interface UiSettings {
   revenge: boolean;
   assistMarker: boolean;
   keyHints: boolean;
+  /** FPS readout in the corner (F3 toggles). */
+  showFps: boolean;
   muted: boolean;
 }
 
 export interface UiActions {
   playBot(): void;
+  /** Watch the replay of the match that just ended (or the last one recorded). */
+  watchReplay(): void;
+  saveReplay(): void;
+  loadReplayFile(file: File): void;
+  hasLastReplay(): boolean;
   playLocal(): void;
   watch(): void;
   resume(): void;
@@ -60,6 +71,12 @@ const REASON_TEXT: Record<PointReason, string> = {
 };
 
 const DIFFS: Difficulty[] = ['easy', 'medium', 'hard'];
+const STYLES: Personality[] = ['purist', 'balanced', 'berserker'];
+const STYLE_SHORT: Record<Personality, string> = {
+  purist: 'PUR',
+  balanced: 'BAL',
+  berserker: 'BER',
+};
 
 const WEAPON_LABEL: Record<WeaponId, string> = {
   frag: 'FRAG',
@@ -166,12 +183,13 @@ export class Ui {
   show(screen: Screen, session?: MatchSession): void {
     this.screen = screen;
     const inMatch = screen === 'hud' || screen === 'pause' || screen === 'over';
-    this.menuEl.hidden = screen !== 'menu' && screen !== 'help';
+    this.menuEl.hidden = screen !== 'menu' && screen !== 'help' && screen !== 'replays';
     this.hudEl.hidden = !inMatch;
     this.overlayEl.hidden = screen !== 'pause' && screen !== 'over';
     this.root.querySelector<HTMLElement>('.pause-btn')!.hidden =
-      screen !== 'hud' || session?.mode === 'watch';
-    this.watchEl.hidden = !(screen === 'hud' && session?.mode === 'watch');
+      screen !== 'hud' || session?.mode === 'watch' || session?.mode === 'replay';
+    const spectating = session?.mode === 'watch' || session?.mode === 'replay';
+    this.watchEl.hidden = !(screen === 'hud' && spectating);
     this.root.querySelector<HTMLElement>('.hint')!.hidden = true;
     if (screen !== 'hud') this.root.querySelector<HTMLElement>('.revenge')!.hidden = true;
     if (screen !== 'hud') {
@@ -180,9 +198,10 @@ export class Ui {
     }
     if (screen === 'menu') this.renderMenu();
     if (screen === 'help') this.renderHelp();
+    if (screen === 'replays') this.renderReplays();
     if (screen === 'pause') this.renderPause();
     if (screen === 'over' && session) this.renderOver(session);
-    if (session?.mode === 'watch') this.renderWatch(session);
+    if (spectating && session) this.renderWatch(session);
     this.hudKey = '';
   }
 
@@ -197,6 +216,8 @@ export class Ui {
     const set = el.dataset.set;
     if (set) {
       const v = el.dataset.value!;
+      if (set === 'style' || set === 'styleA' || set === 'styleB')
+        this.settings[set] = v as Personality;
       if (set === 'difficulty' || set === 'botA' || set === 'botB')
         this.settings[set] = v as Difficulty;
       if (set === 'points') this.settings.pointsToWin = Number(v) as PointsToWin;
@@ -218,6 +239,15 @@ export class Ui {
         return this.actions.watch();
       case 'help':
         return this.show('help');
+      case 'replays':
+        return this.show('replays');
+      case 'watchReplay':
+        return this.actions.watchReplay();
+      case 'saveReplay':
+        return this.actions.saveReplay();
+      case 'loadReplay':
+        this.root.querySelector<HTMLInputElement>('.replay-file')?.click();
+        return;
       case 'back':
         return this.show('menu');
       case 'resume':
@@ -232,6 +262,10 @@ export class Ui {
         return this.renderPause();
       case 'sound':
         this.settings.muted = !this.settings.muted;
+        this.actions.settingsChanged();
+        return this.renderPause();
+      case 'fps':
+        this.settings.showFps = !this.settings.showFps;
         this.actions.settingsChanged();
         return this.renderPause();
       case 'keyHints':
@@ -259,10 +293,14 @@ export class Ui {
       <div class="menu-grid">
         <button class="big" data-action="playBot">PLAY VS BOT</button>
         <div class="chips">${DIFFS.map((d) => chip('difficulty', d, d.toUpperCase(), s.difficulty === d)).join('')}</div>
+        <span></span>
+        <div class="chips">${STYLES.map((p) => chip('style', p, p.toUpperCase(), s.style === p)).join('')}</div>
         <button class="big" data-action="playLocal">LOCAL 2 PLAYERS</button>
         <div class="chips small-note">keyboard halves or 2 gamepads</div>
         <button class="big" data-action="watch">WATCH BOTS</button>
         <div class="chips">${DIFFS.map((d) => chip('botA', d, d[0]!.toUpperCase(), s.botA === d)).join('')}<span class="vs">vs</span>${DIFFS.map((d) => chip('botB', d, d[0]!.toUpperCase(), s.botB === d)).join('')}</div>
+        <span></span>
+        <div class="chips">${STYLES.map((p) => chip('styleA', p, STYLE_SHORT[p], s.styleA === p)).join('')}<span class="vs">vs</span>${STYLES.map((p) => chip('styleB', p, STYLE_SHORT[p], s.styleB === p)).join('')}</div>
       </div>
       <div class="settings-grid">
         <span class="label">WEAPONS</span>
@@ -276,8 +314,30 @@ export class Ui {
         <span class="label">REVENGE</span>
         <div class="chips">${chip('revenge', 'off', 'OFF', !s.revenge)}${chip('revenge', 'on', 'ON · RANDOM', s.revenge)}</div>
       </div>
-      <button class="link" data-action="help">HOW TO PLAY</button>
-      <p class="footer">M2 preview · weapons, KOs, Revenge Turns · personalities arrive in M3</p>`;
+      <div class="chips"><button class="link" data-action="help">HOW TO PLAY</button><button class="link" data-action="replays">REPLAYS</button></div>
+      <p class="footer">M3 preview · bot personalities · replays · online play arrives in M5</p>`;
+  }
+
+  private renderReplays(message = ''): void {
+    const last = this.actions.hasLastReplay();
+    this.menuEl.innerHTML = `
+      <h2>REPLAYS</h2>
+      <p class="small-note">Every match is recorded: seed, settings and every input. Playback re-runs<br>the match and checks it ends exactly the same way.</p>
+      <button class="big" data-action="watchReplay" ${last ? '' : 'disabled'}>WATCH LAST MATCH</button>
+      <button class="big" data-action="loadReplay">LOAD REPLAY FILE</button>
+      <input class="replay-file" type="file" accept=".json,application/json" hidden>
+      ${message ? `<p class="error">${message}</p>` : ''}
+      <button class="big" data-action="back">BACK</button>`;
+    this.menuEl.querySelector<HTMLInputElement>('.replay-file')!.addEventListener('change', (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) this.actions.loadReplayFile(file);
+    });
+  }
+
+  /** Shown when a replay file can't be played. */
+  replayError(message: string): void {
+    this.show('replays');
+    this.renderReplays(message);
   }
 
   private renderHelp(): void {
@@ -291,7 +351,7 @@ export class Ui {
         <p><b>Revenge Turn</b> (optional, off by default): when it's on, losing a point sometimes (about 1 in 5) gives you one Worms-style shot. Q / E picks Rocket, Mortar, Homing Missile, Air Strike, Medkit, Shield (or skip). ↑ / ↓ aims, hold K (or right click) to charge, release to fire. Your opponent can run to dodge. Revenge shots never score points.</p>
         <p><b>Crates</b> parachute in: walk into them for ammo, health or a shield. Shoot them and they explode. Heavy weapons unlock after a few rallies.</p>
         <p><b>Local 2P</b>: left player WASD, L-Shift jump, Space swing, F fire, Q/E weapons, R fuse · right player arrows, R-Shift jump, Enter swing, / fire, [ ] weapons, \\ fuse. <b>Gamepad</b>: A jump, X swing, Y/RT fire, LB/RB weapons, B fuse.</p>
-        <p>Esc pauses · \` opens the tuning panel.</p>
+        <p>Esc pauses · \` opens the tuning panel · F3 shows or hides the FPS counter.</p>
       </div>
       <button class="big" data-action="back">BACK</button>`;
   }
@@ -306,6 +366,7 @@ export class Ui {
       <div class="chips">
         <button class="chip${s.assistMarker ? ' on' : ''}" data-action="marker">LANDING MARKER</button>
         <button class="chip${s.keyHints ? ' on' : ''}" data-action="keyHints">KEY HINTS</button>
+        <button class="chip${s.showFps ? ' on' : ''}" data-action="fps">FPS</button>
         <button class="chip${s.muted ? '' : ' on'}" data-action="sound">SOUND</button>
       </div>`;
   }
@@ -316,9 +377,20 @@ export class Ui {
     const name = session.controllers[w].label;
     const s = session.stats;
     const how = st.winReason === 'ko' ? ' BY K.O.' : '';
+    const isReplay = session.mode === 'replay';
+    const check = !isReplay
+      ? ''
+      : session.verified
+        ? '<p class="verified ok">REPLAY VERIFIED ✓ · identical to the original match</p>'
+        : '<p class="verified bad">REPLAY MISMATCH ✗ · this build plays it differently</p>';
+    const buttons = isReplay
+      ? `<button class="big" data-action="restart">WATCH AGAIN</button>`
+      : `<button class="big" data-action="restart">REMATCH</button>
+         <div class="chips"><button class="chip" data-action="watchReplay">WATCH REPLAY</button><button class="chip" data-action="saveReplay">SAVE REPLAY</button></div>`;
     this.overlayEl.innerHTML = `
-      <h2 class="${w === 0 ? 'p1' : 'p2'}">${name} WINS${how}</h2>
+      <h2 class="${w === 0 ? 'p1' : 'p2'}">${isReplay ? 'REPLAY · ' : ''}${name} WINS${how}</h2>
       <p class="final">${st.score[0]} – ${st.score[1]}</p>
+      ${check}
       <table class="stats">
         <tr><td>${s.winners[0]}</td><th>winners</th><td>${s.winners[1]}</td></tr>
         <tr><td>${s.errors[0]}</td><th>errors</th><td>${s.errors[1]}</td></tr>
@@ -326,7 +398,7 @@ export class Ui {
         <tr><td>${s.damageTaken[0]}</td><th>damage taken</th><td>${s.damageTaken[1]}</td></tr>
         <tr><td colspan="3">longest rally: ${s.longestRally} shots</td></tr>
       </table>
-      <button class="big" data-action="restart">REMATCH</button>
+      ${buttons}
       <button class="big" data-action="menu">MENU</button>`;
   }
 
@@ -336,7 +408,7 @@ export class Ui {
       ${speeds.map((v) => chip('speed', v, `${v}×`, session.speed === v)).join('')}
       <button class="chip" data-action="watchPause">${session.paused ? '▶' : '❚❚'}</button>
       <button class="chip" data-action="watchStep">STEP</button>
-      <button class="chip" data-action="intent">AI&nbsp;INTENT</button>
+      ${session.mode === 'watch' ? '<button class="chip" data-action="intent">AI&nbsp;INTENT</button>' : '<span class="seed">REPLAY</span>'}
       <span class="seed">seed ${session.seed}</span>
       <button class="chip" data-action="menu">MENU</button>`;
   }
@@ -463,7 +535,7 @@ export class Ui {
         <div class="side p1"><div class="row"><span class="name">${name(0)}</span>${serving(0)}<span class="score">${st.score[0]}</span></div><div class="row sub">${hp(pl[0])}${chipHtml(pl[0])}</div>${keys(0)}</div>
         <div class="center"><div class="wind" title="wind">WIND <b>${arrows}</b> ${Math.abs(wind).toFixed(1)}</div>${games}${st.suddenDeath ? '<span class="sudden">SUDDEN DEATH</span>' : ''}</div>
         <div class="side p2"><div class="row"><span class="score">${st.score[1]}</span>${serving(1)}<span class="name">${name(1)}</span></div><div class="row sub">${chipHtml(pl[1])}${hp(pl[1])}</div>${keys(1)}</div>`;
-      if (session.mode === 'watch') this.renderWatch(session);
+      if (session.mode === 'watch' || session.mode === 'replay') this.renderWatch(session);
     }
 
     // Revenge Turn bar: who shoots, time left, weapon, charge.

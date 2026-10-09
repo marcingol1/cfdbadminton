@@ -1,11 +1,11 @@
 import '@fontsource/press-start-2p';
 import './style.css';
 import Phaser from 'phaser';
-import type { Difficulty } from '@deadminton/bots';
-import { DEFAULT_TUNING } from '@deadminton/sim';
-import type { MatchConfig, SimEvent, Tuning } from '@deadminton/sim';
+import type { Difficulty, Personality } from '@deadminton/bots';
+import { DEFAULT_TUNING, parseReplay, replayFrames } from '@deadminton/sim';
+import type { MatchConfig, Replay, SimEvent, Tuning } from '@deadminton/sim';
 import { Sfx } from './audio/sfx';
-import { BotController, HumanController } from './game/controllers';
+import { BotController, HumanController, ReplayController } from './game/controllers';
 import type { Controller } from './game/controllers';
 import { MatchSession } from './game/session';
 import type { SessionMode } from './game/session';
@@ -16,17 +16,22 @@ import { TouchDevice, isTouchDevice } from './input/touch';
 import { MatchScene } from './render/scene';
 import type { SceneHost } from './render/scene';
 import { VIEW_H, VIEW_W } from './render/view';
+import { FpsMeter } from './ui/fps';
 import type { KeyLayout } from './ui/keyhints';
 import { Ui, setPath } from './ui/ui';
 import type { UiSettings } from './ui/ui';
 
 const SETTINGS_KEY = 'deadminton.settings';
+const REPLAY_KEY = 'deadminton.lastReplay';
 
 function loadSettings(): UiSettings {
   const defaults: UiSettings = {
     difficulty: 'medium',
     botA: 'hard',
     botB: 'medium',
+    style: 'balanced',
+    styleA: 'berserker',
+    styleB: 'purist',
     pointsToWin: 11,
     scheme: 'standard',
     arena: 'hall',
@@ -34,6 +39,7 @@ function loadSettings(): UiSettings {
     revenge: false,
     assistMarker: true,
     keyHints: true,
+    showFps: true,
     muted: false,
   };
   try {
@@ -57,6 +63,10 @@ class App implements SceneHost {
   showIntent = false;
   private readonly ui: Ui;
   private readonly sfx = new Sfx();
+  private readonly fps: FpsMeter;
+  private lastReplay: Replay | null = null;
+  /** The replay currently (or last) being watched, for WATCH AGAIN. */
+  private playing: Replay | null = null;
   private readonly settings = loadSettings();
   private readonly tuning: Tuning = structuredClone(DEFAULT_TUNING);
   private readonly touch: TouchDevice | null;
@@ -67,6 +77,23 @@ class App implements SceneHost {
   constructor(private readonly stage: HTMLElement) {
     this.ui = new Ui(stage, this.settings, {
       playBot: () => this.start('vsBot'),
+      watchReplay: () => {
+        const replay = this.session?.replay ?? this.loadLastReplay();
+        if (replay) this.startReplay(replay);
+      },
+      saveReplay: () => {
+        const replay = this.session?.replay ?? this.loadLastReplay();
+        if (replay) this.downloadReplay(replay);
+      },
+      loadReplayFile: (file) => {
+        file
+          .text()
+          .then((text) => this.startReplay(parseReplay(JSON.parse(text))))
+          .catch((err: unknown) =>
+            this.ui.replayError(err instanceof Error ? err.message : 'Could not read that file.'),
+          );
+      },
+      hasLastReplay: () => this.loadLastReplay() !== null,
       playLocal: () => this.start('local2p'),
       watch: () => this.start('watch'),
       resume: () => this.resume(),
@@ -96,7 +123,10 @@ class App implements SceneHost {
       settingsChanged: () => this.saveSettings(),
       tuningChanged: (path, value) => {
         setPath(this.tuning, path, value);
-        if (this.session) setPath(this.session.state.config.tuning, path, value);
+        if (this.session) {
+          setPath(this.session.state.config.tuning, path, value);
+          this.session.tuningEdited = true;
+        }
       },
     });
     this.touch = isTouchDevice() ? new TouchDevice(stage) : null;
@@ -114,6 +144,8 @@ class App implements SceneHost {
       fuse: [],
     });
     this.sfx.muted = this.settings.muted;
+    this.fps = new FpsMeter(stage);
+    this.fps.setVisible(this.settings.showFps);
 
     stage.addEventListener('pointerdown', (e) => {
       this.sfx.unlock();
@@ -130,6 +162,11 @@ class App implements SceneHost {
       this.sfx.unlock();
       if (e.code === 'Escape') this.togglePause();
       if (e.code === 'Backquote') this.ui.toggleTuning(this.session?.state ?? null);
+      if (e.code === 'F3') {
+        e.preventDefault();
+        this.settings.showFps = !this.settings.showFps;
+        this.saveSettings();
+      }
     });
     document.addEventListener('visibilitychange', () => document.hidden && this.pause());
     this.toMenu();
@@ -143,6 +180,7 @@ class App implements SceneHost {
 
   private saveSettings(): void {
     this.sfx.muted = this.settings.muted;
+    this.fps.setVisible(this.settings.showFps);
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
     } catch {
@@ -171,7 +209,55 @@ class App implements SceneHost {
     };
   }
 
+  /** Plays a recorded match back through the normal session (inputs come from the file). */
+  private startReplay(replay: Replay): void {
+    const frames = replayFrames(replay);
+    const controllers: [Controller, Controller] = [
+      new ReplayController(0, frames, replay.labels[0]),
+      new ReplayController(1, frames, replay.labels[1]),
+    ];
+    this.lastMode = 'replay';
+    this.playing = replay;
+    this.session = new MatchSession('replay', controllers, replay.config, replay.seed, replay);
+    this.showIntent = false;
+    this.touch?.setVisible(false);
+    this.ui.show('hud', this.session);
+  }
+
+  private saveLastReplay(replay: Replay): void {
+    this.lastReplay = replay;
+    try {
+      localStorage.setItem(REPLAY_KEY, JSON.stringify(replay));
+    } catch {
+      // Storage full or blocked: the replay is still available until the page closes.
+    }
+  }
+
+  private loadLastReplay(): Replay | null {
+    if (this.lastReplay) return this.lastReplay;
+    try {
+      const raw = localStorage.getItem(REPLAY_KEY);
+      return raw ? parseReplay(JSON.parse(raw)) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private downloadReplay(replay: Replay): void {
+    const blob = new Blob([JSON.stringify(replay)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `deadminton-replay-${replay.seed}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
   private start(mode: SessionMode): void {
+    if (mode === 'replay') {
+      const replay = this.playing ?? this.loadLastReplay();
+      if (replay) this.startReplay(replay);
+      return;
+    }
     if (mode !== 'attract') this.lastMode = mode;
     const seed = (mode !== 'attract' ? urlSeed() : null) ?? randomSeed();
     let controllers: [Controller, Controller];
@@ -186,7 +272,7 @@ class App implements SceneHost {
         if (this.touch) devices.push(this.touch);
         controllers = [
           new HumanController('YOU', devices),
-          new BotController(1, s.difficulty, seed),
+          new BotController(1, s.difficulty, seed, s.style),
         ];
         break;
       }
@@ -200,7 +286,12 @@ class App implements SceneHost {
       case 'attract': {
         const a: Difficulty = mode === 'attract' ? 'hard' : s.botA;
         const b: Difficulty = mode === 'attract' ? 'hard' : s.botB;
-        controllers = [new BotController(0, a, seed), new BotController(1, b, seed + 1)];
+        const styleA: Personality = mode === 'attract' ? 'berserker' : s.styleA;
+        const styleB: Personality = mode === 'attract' ? 'balanced' : s.styleB;
+        controllers = [
+          new BotController(0, a, seed, styleA),
+          new BotController(1, b, seed + 1, styleB),
+        ];
         break;
       }
     }
@@ -216,7 +307,8 @@ class App implements SceneHost {
   }
 
   private pause(): void {
-    if (!this.session || this.ui.current !== 'hud' || this.session.mode === 'watch') return;
+    const mode = this.session?.mode;
+    if (!this.session || this.ui.current !== 'hud' || mode === 'watch' || mode === 'replay') return;
     this.session.paused = true;
     this.ui.show('pause', this.session);
   }
@@ -233,6 +325,7 @@ class App implements SceneHost {
   }
 
   frame(deltaMs: number): SimEvent[] {
+    this.fps.frame(deltaMs);
     const session = this.session;
     if (!session) return [];
     const start = new GamepadDevice(0).startPressed();
@@ -252,6 +345,7 @@ class App implements SceneHost {
     if (session.mode !== 'attract') {
       this.ui.update(session, events, deltaMs, this.keyLayouts(session));
       if (session.state.phase === 'matchOver' && this.ui.current === 'hud') {
+        if (session.replay && !session.tuningEdited) this.saveLastReplay(session.replay);
         this.ui.show('over', session);
         this.touch?.setVisible(false);
       }

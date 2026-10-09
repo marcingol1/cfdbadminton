@@ -716,3 +716,46 @@ h2.p2 {
     z-index: 10;
   }
 }
+
+.fps {
+  position: absolute;
+  left: calc(var(--u) * 2);
+  top: calc(var(--u) * 2);
+  padding: calc(var(--u) * 1) calc(var(--u) * 2);
+  background: rgb(24 20 37 / 75%);
+  font-size: calc(var(--u) * 4);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.fps.good {
+  color: #63c74d;
+}
+
+.fps.ok {
+  color: #feae34;
+}
+
+.fps.bad {
+  color: #e43b44;
+}
+
+.verified {
+  margin: 0;
+  font-size: calc(var(--u) * 5);
+}
+
+.verified.ok {
+  color: #63c74d;
+}
+
+.verified.bad,
+.error {
+  color: var(--p1);
+  font-size: calc(var(--u) * 5);
+}
+
+.big[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}

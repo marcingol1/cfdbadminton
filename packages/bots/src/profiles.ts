@@ -65,3 +65,83 @@ export const DIFFICULTIES: Record<Difficulty, BotProfile> = {
     dodge: 1,
   },
 };
+
+/**
+ * Personality = what the bot *wants* (difficulty = how well it plays).
+ * Purist plays for points, Berserker hunts KOs, Balanced weighs the situation.
+ */
+export type Personality = 'purist' | 'balanced' | 'berserker';
+
+export interface PersonalityTraits {
+  name: string;
+  /** Multiplier on the chance to load a weapon shuttle. */
+  weaponUse: number;
+  /** Multiplier on the chance to throw a mine. */
+  mineUse: number;
+  /** Relative weights for choosing a loaded shot. */
+  loadedWeights: { frag: number; lead: number; shock: number; cluster: number; ghost: number };
+  /** Extra ticks of fuse the bot wants before it dares to return a live Frag. */
+  fragMargin: number;
+  /** Probability of giving up the point rather than returning a Shock Shuttle when it hurts. */
+  shockFear: number;
+  /** Multiplier on smash aggression. */
+  aggression: number;
+  /**
+   * Revenge Turn attitude. 'utility': heal / shield / skip unless clearly behind on points.
+   * 'value': attack only when it's worth it. 'always': attack with whatever does most damage.
+   */
+  revenge: 'utility' | 'value' | 'always';
+  /** Balanced only: scale weapon use with the situation (opponent low on HP, big lead). */
+  situational: boolean;
+}
+
+export const PERSONALITIES: Record<Personality, PersonalityTraits> = {
+  purist: {
+    name: 'Purist',
+    weaponUse: 0,
+    mineUse: 0,
+    loadedWeights: { frag: 0, lead: 0, shock: 0, cluster: 0, ghost: 0 },
+    fragMargin: 30,
+    shockFear: 1,
+    aggression: 1,
+    revenge: 'utility',
+    situational: false,
+  },
+  balanced: {
+    name: 'Balanced',
+    weaponUse: 1,
+    mineUse: 1,
+    loadedWeights: { frag: 3, lead: 2, shock: 2, cluster: 1, ghost: 1 },
+    fragMargin: 15,
+    shockFear: 0.5,
+    aggression: 1,
+    revenge: 'value',
+    situational: true,
+  },
+  berserker: {
+    name: 'Berserker',
+    weaponUse: 2.5,
+    mineUse: 3,
+    loadedWeights: { frag: 5, lead: 3, shock: 1, cluster: 2, ghost: 0 },
+    fragMargin: 4,
+    shockFear: 0,
+    aggression: 1.25,
+    revenge: 'always',
+    situational: false,
+  },
+};
+
+/** "hard", "hard:berserker" → difficulty + personality (default Balanced). */
+export interface BotSpec {
+  difficulty: Difficulty;
+  personality: Personality;
+}
+
+export function parseBotSpec(text: string): BotSpec {
+  const [d = 'medium', p = 'balanced'] = text.split(':');
+  if (!(d in DIFFICULTIES))
+    throw new Error(`Unknown difficulty "${d}". Use: ${Object.keys(DIFFICULTIES).join(', ')}`);
+  if (!(p in PERSONALITIES))
+    throw new Error(`Unknown personality "${p}". Use: ${Object.keys(PERSONALITIES).join(', ')}`);
+  return { difficulty: d as Difficulty, personality: p as Personality };
+}
