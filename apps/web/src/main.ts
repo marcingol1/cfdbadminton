@@ -27,6 +27,9 @@ function loadSettings(): UiSettings {
     botA: 'hard',
     botB: 'medium',
     pointsToWin: 11,
+    scheme: 'standard',
+    arena: 'hall',
+    bestOf: 1,
     assistMarker: true,
     muted: false,
   };
@@ -102,14 +105,24 @@ class App implements SceneHost {
       down: [],
       jump: [],
       hit: [],
+      fire: [],
+      prev: [],
+      next: [],
+      fuse: [],
     });
     this.sfx.muted = this.settings.muted;
 
     stage.addEventListener('pointerdown', (e) => {
       this.sfx.unlock();
-      if ((e.target as HTMLElement).tagName === 'CANVAS' && this.ui.current === 'hud')
-        this.mouseHit.externalHit = true;
+      if ((e.target as HTMLElement).tagName !== 'CANVAS' || this.ui.current !== 'hud') return;
+      // Left click swings, right click fires (hold to charge in a Revenge Turn).
+      if (e.button === 2) this.mouseHit.externalFire = true;
+      else this.mouseHit.externalHit = true;
     });
+    window.addEventListener('pointerup', (e) => {
+      if (e.button === 2) this.mouseHit.externalFire = false;
+    });
+    stage.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('keydown', (e) => {
       this.sfx.unlock();
       if (e.code === 'Escape') this.togglePause();
@@ -134,8 +147,18 @@ class App implements SceneHost {
     }
   }
 
-  private config(): Partial<MatchConfig> {
-    return { pointsToWin: this.settings.pointsToWin, tuning: this.tuning };
+  private config(mode: SessionMode): Partial<MatchConfig> {
+    // The title screen shows off: bots play Chaos (lots of weapons) behind the menu.
+    if (mode === 'attract')
+      return { pointsToWin: 11, scheme: 'chaos', arena: 'hall', tuning: this.tuning };
+    const s = this.settings;
+    return {
+      pointsToWin: s.pointsToWin,
+      scheme: s.scheme,
+      arena: s.arena,
+      bestOf: s.bestOf,
+      tuning: this.tuning,
+    };
   }
 
   private start(mode: SessionMode): void {
@@ -171,7 +194,7 @@ class App implements SceneHost {
         break;
       }
     }
-    this.session = new MatchSession(mode, controllers, this.config(), seed);
+    this.session = new MatchSession(mode, controllers, this.config(mode), seed);
     this.showIntent = false;
     this.touch?.setVisible(mode === 'vsBot');
     if (mode === 'attract') this.ui.show('menu');
@@ -243,6 +266,28 @@ class App implements SceneHost {
         return this.sfx.play('point');
       case 'matchOver':
         return this.sfx.play('win');
+      case 'explosion':
+        return this.sfx.play('explosion', Math.min(1.5, e.radius / 1.2));
+      case 'revengeFire':
+        return e.weapon ? this.sfx.play('launch') : undefined;
+      case 'throw':
+        return this.sfx.play('swing');
+      case 'shocked':
+        return this.sfx.play('zap');
+      case 'mineArmed':
+      case 'mineTriggered':
+        return this.sfx.play('beep');
+      case 'crateCollect':
+      case 'heal':
+      case 'shieldUp':
+        return this.sfx.play('pickup');
+      case 'select':
+      case 'fuse':
+        return this.sfx.play('tick');
+      case 'ko':
+        return this.sfx.play('ko');
+      case 'revengeStart':
+        return this.sfx.play('alarm');
     }
   }
 }

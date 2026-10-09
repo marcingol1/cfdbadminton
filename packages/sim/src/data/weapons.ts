@@ -145,7 +145,7 @@ export const WEAPON_TUNING = {
   homing: { lockDelayTicks: 24, accel: 30, maxSpeed: 20 },
   airstrike: { missiles: 5, spacing: 0.55, height: 12, fallSpeed: 16 },
   crate: { radius: 1.2, damage: 15, knockback: 6, health: 20, shield: 30, fallSpeed: 2.5 },
-  fall: { safeHeight: 3, damagePerMeter: 2 },
+  fall: { safeHeight: 2, damagePerMeter: 4 },
   pitDepth: 4,
 } as const;
 

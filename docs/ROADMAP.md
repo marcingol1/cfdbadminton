@@ -39,7 +39,7 @@ Sizes are relative: S < M < L.
 - **Done when:** a "Purist" match against the bot is _fun_, playtested on desktop and on a
   phone. **Go/no-go gate:** we don't add weapons until rallies feel good.
 
-### M2 — "Deadly" (L)
+### M2 — "Deadly" (L) — 🟡 built, awaiting playtest
 
 - HP, damage, knockback, death, KO victory and the double-KO rules (R-02…R-07).
 - The terrain heightmap and craters. The Rooftop arena with pits.

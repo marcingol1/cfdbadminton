@@ -1,6 +1,18 @@
 import type { Difficulty } from '@deadminton/bots';
-import type { MatchState, PointReason, PointsToWin, SimEvent, Tuning } from '@deadminton/sim';
+import { REVENGE_TURN_TICKS } from '@deadminton/sim';
+import type {
+  ArenaId,
+  MatchState,
+  PlayerState,
+  PointReason,
+  PointsToWin,
+  SchemeId,
+  SimEvent,
+  Tuning,
+  WeaponId,
+} from '@deadminton/sim';
 import type { MatchSession } from '../game/session';
+import { VIEW_H, VIEW_W, sx, sy } from '../render/view';
 
 export type Screen = 'menu' | 'help' | 'hud' | 'pause' | 'over';
 
@@ -9,6 +21,9 @@ export interface UiSettings {
   botA: Difficulty;
   botB: Difficulty;
   pointsToWin: PointsToWin;
+  scheme: SchemeId;
+  arena: ArenaId;
+  bestOf: 1 | 3;
   assistMarker: boolean;
   muted: boolean;
 }
@@ -40,6 +55,31 @@ const REASON_TEXT: Record<PointReason, string> = {
 };
 
 const DIFFS: Difficulty[] = ['easy', 'medium', 'hard'];
+
+const WEAPON_LABEL: Record<WeaponId, string> = {
+  frag: 'FRAG',
+  shock: 'SHOCK',
+  lead: 'LEAD',
+  cluster: 'CLUSTER',
+  ghost: 'GHOST',
+  mine: 'MINE',
+  rocket: 'ROCKET',
+  mortar: 'MORTAR',
+  homing: 'HOMING',
+  airstrike: 'AIR STRIKE',
+  medkit: 'MEDKIT',
+  shield: 'SHIELD',
+};
+
+/** Weapon chip text: the selected weapon, its ammo, and the fuse for Frags. */
+function weaponChip(st: MatchState, p: PlayerState): string {
+  const revenge = st.phase === 'revenge' && st.revenge?.shooter === p.id;
+  const w = revenge ? p.revengeWeapon : p.rallyWeapon;
+  if (w === null) return revenge ? 'SKIP TURN' : 'SHUTTLE';
+  const ammo = p.ammo[w] < 0 ? '∞' : `×${p.ammo[w]}`;
+  const fuse = w === 'frag' ? ` ⏱${p.fuse}s` : '';
+  return `${WEAPON_LABEL[w]} ${ammo}${fuse}`;
+}
 
 interface TuningKnob {
   path: string;
@@ -97,6 +137,7 @@ export class Ui {
       `<div class="hud" hidden></div>
        <div class="banner" hidden></div>
        <div class="hint" hidden></div>
+       <div class="revenge" hidden></div>
        <div class="watchbar" hidden></div>
        <div class="overlay" hidden></div>
        <div class="menu"></div>
@@ -127,6 +168,7 @@ export class Ui {
       screen !== 'hud' || session?.mode === 'watch';
     this.watchEl.hidden = !(screen === 'hud' && session?.mode === 'watch');
     this.root.querySelector<HTMLElement>('.hint')!.hidden = true;
+    if (screen !== 'hud') this.root.querySelector<HTMLElement>('.revenge')!.hidden = true;
     if (screen !== 'hud') {
       this.root.querySelector<HTMLElement>('.banner')!.hidden = true;
       this.bannerTimer = 0;
@@ -153,6 +195,9 @@ export class Ui {
       if (set === 'difficulty' || set === 'botA' || set === 'botB')
         this.settings[set] = v as Difficulty;
       if (set === 'points') this.settings.pointsToWin = Number(v) as PointsToWin;
+      if (set === 'scheme') this.settings.scheme = v as SchemeId;
+      if (set === 'arena') this.settings.arena = v as ArenaId;
+      if (set === 'bestOf') this.settings.bestOf = Number(v) as 1 | 3;
       if (set === 'speed') return this.actions.setSpeed(Number(v));
       this.actions.settingsChanged();
       if (this.screen === 'menu') this.renderMenu();
@@ -207,26 +252,32 @@ export class Ui {
         <div class="chips small-note">keyboard halves or 2 gamepads</div>
         <button class="big" data-action="watch">WATCH BOTS</button>
         <div class="chips">${DIFFS.map((d) => chip('botA', d, d[0]!.toUpperCase(), s.botA === d)).join('')}<span class="vs">vs</span>${DIFFS.map((d) => chip('botB', d, d[0]!.toUpperCase(), s.botB === d)).join('')}</div>
+      </div>
+      <div class="settings-grid">
+        <span class="label">WEAPONS</span>
+        <div class="chips">${(['purist', 'standard', 'chaos'] as const).map((v) => chip('scheme', v, v.toUpperCase(), s.scheme === v)).join('')}</div>
+        <span class="label">ARENA</span>
+        <div class="chips">${chip('arena', 'hall', 'HALL', s.arena === 'hall')}${chip('arena', 'rooftop', 'ROOFTOP', s.arena === 'rooftop')}</div>
         <span class="label">POINTS</span>
         <div class="chips">${([7, 11, 21] as const).map((p) => chip('points', p, String(p), s.pointsToWin === p)).join('')}</div>
+        <span class="label">GAMES</span>
+        <div class="chips">${chip('bestOf', 1, '1', s.bestOf === 1)}${chip('bestOf', 3, 'BEST OF 3', s.bestOf === 3)}</div>
       </div>
       <button class="link" data-action="help">HOW TO PLAY</button>
-      <p class="footer">M1 preview · pure badminton · weapons arrive in M2</p>`;
+      <p class="footer">M2 preview · weapons, KOs, Revenge Turns · personalities arrive in M3</p>`;
   }
 
   private renderHelp(): void {
     this.menuEl.innerHTML = `
       <h2>HOW TO PLAY</h2>
       <div class="help">
-        <p><b>Win the rally</b>: land the shuttle in on the other side, or make your opponent hit it out, into the net, or with their body. First to ${this.settings.pointsToWin}, win by 2.</p>
-        <p><b>Move</b> A / D or ← →. <b>Jump</b> Space. <b>Swing</b> J (or click / tap HIT).</p>
-        <p><b>Hold a direction while you swing</b>:<br>
-          ↑ W — clear (high and deep) · ↓ S — drop / net shot<br>
-          → toward the net — <b>smash</b> when the shuttle is high (jump!), else a drive<br>
-          nothing — safe clear / lift</p>
-        <p><b>Timing</b>: meet the shuttle at the racket's sweet spot. Bad timing sends it long, short, or into the net. Watch the <b>wind</b>.</p>
-        <p><b>Serve</b>: J to serve. ↑ high serve · → flick · nothing / ↓ short serve. It must land past the short service line.</p>
-        <p><b>Local 2P</b>: left player WASD + L-Shift jump + Space swing · right player arrows + R-Shift jump + Enter swing.</p>
+        <p><b>Two ways to win</b>: first to ${this.settings.pointsToWin} points (win by 2), or knock your opponent out (0 HP). A KO ends the match at once. Blow yourself up and your opponent wins.</p>
+        <p><b>Rally</b>: land the shuttle in on the other side, or make your opponent hit it out, into the net, or with their body. Damage alone never ends a rally.</p>
+        <p><b>Move</b> A / D · <b>Jump</b> Space · <b>Swing</b> J or left click. Hold a direction while swinging: ↑ clear · ↓ drop / net shot · → (toward the net) <b>smash</b> when the shuttle is high, else a drive. Timing decides accuracy. Watch the <b>wind</b>.</p>
+        <p><b>Loaded shuttles</b>: Q / E picks a weapon for your next hit, R sets the Frag fuse (1–5 s). <b>Frag</b> explodes when its fuse runs out, even if they hit it back (hot potato!). <b>Shock</b> hurts and stuns whoever hits it next. <b>Lead</b> flies fast and hurts on a body hit. <b>Cluster</b> splits into bomblets on landing. <b>Ghost</b> turns invisible after the net. <b>Mine</b>: select it and press K to throw it onto their side.</p>
+        <p><b>Revenge Turn</b>: lose a point and you get one Worms-style shot. Q / E picks Rocket, Mortar, Homing Missile, Air Strike, Medkit, Shield (or skip). ↑ / ↓ aims, hold K (or right click) to charge, release to fire. Your opponent can run to dodge. Revenge shots never score points.</p>
+        <p><b>Crates</b> parachute in: walk into them for ammo, health or a shield. Shoot them and they explode. Heavy weapons unlock after a few rallies.</p>
+        <p><b>Local 2P</b>: left player WASD, L-Shift jump, Space swing, F fire, Q/E weapons, R fuse · right player arrows, R-Shift jump, Enter swing, / fire, [ ] weapons, \\ fuse. <b>Gamepad</b>: A jump, X swing, Y/RT fire, LB/RB weapons, B fuse.</p>
         <p>Esc pauses · \` opens the tuning panel.</p>
       </div>
       <button class="big" data-action="back">BACK</button>`;
@@ -250,13 +301,15 @@ export class Ui {
     const w = st.winner ?? 0;
     const name = session.controllers[w].label;
     const s = session.stats;
+    const how = st.winReason === 'ko' ? ' BY K.O.' : '';
     this.overlayEl.innerHTML = `
-      <h2 class="${w === 0 ? 'p1' : 'p2'}">${name} WINS</h2>
+      <h2 class="${w === 0 ? 'p1' : 'p2'}">${name} WINS${how}</h2>
       <p class="final">${st.score[0]} – ${st.score[1]}</p>
       <table class="stats">
         <tr><td>${s.winners[0]}</td><th>winners</th><td>${s.winners[1]}</td></tr>
         <tr><td>${s.errors[0]}</td><th>errors</th><td>${s.errors[1]}</td></tr>
         <tr><td>${s.smashes[0]}</td><th>smashes</th><td>${s.smashes[1]}</td></tr>
+        <tr><td>${s.damageTaken[0]}</td><th>damage taken</th><td>${s.damageTaken[1]}</td></tr>
         <tr><td colspan="3">longest rally: ${s.longestRally} shots</td></tr>
       </table>
       <button class="big" data-action="restart">REMATCH</button>
@@ -298,43 +351,135 @@ export class Ui {
   /** Called every frame while a match is shown. */
   update(session: MatchSession, events: SimEvent[], deltaMs: number): void {
     const st = session.state;
+    const name = (id: 0 | 1) => session.controllers[id].label;
     for (const e of events) {
-      if (e.type === 'point')
-        this.banner(`${session.controllers[e.winner].label} · ${REASON_TEXT[e.reason]}`, e.winner);
+      switch (e.type) {
+        case 'point':
+          this.banner(`${name(e.winner)} · ${REASON_TEXT[e.reason]}`, e.winner);
+          break;
+        case 'ko':
+          this.banner('K.O.!', e.player === 0 ? 1 : 0, 'big');
+          break;
+        case 'suddenDeath':
+          this.banner('SUDDEN DEATH · 1 HP · NEXT POINT WINS', st.server, 'big');
+          break;
+        case 'gameOver':
+          this.banner(`GAME ${name(e.winner)} · ${e.games[0]}–${e.games[1]}`, e.winner, 'big');
+          break;
+        case 'revengeStart':
+          this.banner(`REVENGE TURN · ${name(e.shooter)}`, e.shooter);
+          break;
+        case 'damage':
+          if (e.amount > 0) this.float(`-${e.amount}`, e.x, e.y, 'dmg');
+          break;
+        case 'heal':
+          if (e.amount > 0)
+            this.float(
+              `+${e.amount}`,
+              st.players[e.player].x,
+              st.players[e.player].y + 1.8,
+              'heal',
+            );
+          break;
+        case 'shieldUp':
+          this.float('SHIELD', st.players[e.player].x, st.players[e.player].y + 1.8, 'shield');
+          break;
+        case 'shocked':
+          this.float('ZAP!', st.players[e.player].x, st.players[e.player].y + 2, 'shield');
+          break;
+        case 'crateCollect': {
+          const what =
+            e.contents === 'weapon' && e.weapon
+              ? `+1 ${WEAPON_LABEL[e.weapon]}`
+              : e.contents.toUpperCase();
+          this.float(what, st.players[e.player].x, st.players[e.player].y + 2.1, 'heal');
+          break;
+        }
+      }
     }
     if (this.bannerTimer > 0) {
       this.bannerTimer -= deltaMs;
       if (this.bannerTimer <= 0) this.root.querySelector<HTMLElement>('.banner')!.hidden = true;
     }
 
+    const weapons = st.config.scheme !== 'purist';
     const wind = st.wind;
     const arrows =
       wind === 0 ? '·' : (wind > 0 ? '▶' : '◀').repeat(Math.min(3, Math.ceil(Math.abs(wind) * 2)));
-    const key = `${st.score[0]}|${st.score[1]}|${st.server}|${wind}|${st.phase}`;
+    const pl = st.players;
+    const key = [
+      st.score.join(),
+      st.games.join(),
+      st.server,
+      wind,
+      st.phase,
+      st.suddenDeath,
+      ...pl.map((p) => `${p.hp}/${p.shield}/${weaponChip(st, p)}`),
+    ].join('|');
     if (key !== this.hudKey) {
       this.hudKey = key;
       const serving = (id: 0 | 1) =>
         st.server === id && st.phase === 'serve' ? '<i class="serve-dot"></i>' : '';
+      const hp = (p: PlayerState) =>
+        weapons
+          ? `<span class="hp"><i style="width:${p.hp}%" class="${p.hp > 60 ? 'ok' : p.hp > 30 ? 'warn' : 'low'}"></i>${p.shield > 0 ? `<b style="width:${p.shield}%"></b>` : ''}</span><span class="hp-num">${p.hp}</span>`
+          : '';
+      const chipHtml = (p: PlayerState) =>
+        weapons ? `<span class="weapon">${weaponChip(st, p)}</span>` : '';
+      const games =
+        st.config.bestOf > 1
+          ? `<span class="games">${'●'.repeat(st.games[0])}${'○'.repeat(2 - st.games[0])} GAMES ${'○'.repeat(2 - st.games[1])}${'●'.repeat(st.games[1])}</span>`
+          : '';
       this.hudEl.innerHTML = `
-        <div class="side p1"><span class="name">${session.controllers[0].label}</span>${serving(0)}<span class="score">${st.score[0]}</span></div>
-        <div class="wind" title="wind">WIND <b>${arrows}</b> ${Math.abs(wind).toFixed(1)}</div>
-        <div class="side p2"><span class="score">${st.score[1]}</span>${serving(1)}<span class="name">${session.controllers[1].label}</span></div>`;
+        <div class="side p1"><div class="row"><span class="name">${name(0)}</span>${serving(0)}<span class="score">${st.score[0]}</span></div><div class="row sub">${hp(pl[0])}${chipHtml(pl[0])}</div></div>
+        <div class="center"><div class="wind" title="wind">WIND <b>${arrows}</b> ${Math.abs(wind).toFixed(1)}</div>${games}${st.suddenDeath ? '<span class="sudden">SUDDEN DEATH</span>' : ''}</div>
+        <div class="side p2"><div class="row"><span class="score">${st.score[1]}</span>${serving(1)}<span class="name">${name(1)}</span></div><div class="row sub">${chipHtml(pl[1])}${hp(pl[1])}</div></div>`;
       if (session.mode === 'watch') this.renderWatch(session);
+    }
+
+    // Revenge Turn bar: who shoots, time left, weapon, charge.
+    const rvEl = this.root.querySelector<HTMLElement>('.revenge')!;
+    const rv = st.revenge;
+    rvEl.hidden = !(rv && !rv.fired && this.screen === 'hud');
+    if (rv && !rvEl.hidden) {
+      const secs = Math.ceil(rv.ticksLeft / 60);
+      const shooter = pl[rv.shooter];
+      const aimed =
+        shooter.revengeWeapon === 'rocket' ||
+        shooter.revengeWeapon === 'mortar' ||
+        shooter.revengeWeapon === 'homing';
+      rvEl.className = `revenge ${rv.shooter === 0 ? 'p1' : 'p2'}`;
+      rvEl.innerHTML = `<span>REVENGE · ${name(rv.shooter)}</span><span class="time${secs <= 3 ? ' low' : ''}">${secs}s</span><span>${weaponChip(st, shooter)}${aimed ? ` · ${Math.round(rv.angle)}°` : ''}</span>${aimed ? `<span class="power"><i style="width:${Math.round(rv.power * 100)}%"></i></span>` : ''}`;
+      rvEl.style.setProperty('--t', String(rv.ticksLeft / REVENGE_TURN_TICKS));
     }
 
     const hint = this.root.querySelector<HTMLElement>('.hint')!;
     const humanServing = st.phase === 'serve' && session.controllers[st.server].kind === 'human';
-    hint.hidden = !(humanServing && this.screen === 'hud');
+    const humanRevenge = rv && !rv.fired && session.controllers[rv.shooter].kind === 'human';
+    hint.hidden = !((humanServing || humanRevenge) && this.screen === 'hud');
     if (!hint.hidden) {
-      const who = session.mode === 'local2p' ? `${session.controllers[st.server].label}: ` : '';
-      hint.textContent = `${who}SWING TO SERVE · ↑ HIGH · → FLICK · — SHORT`;
+      const who = (id: 0 | 1) => (session.mode === 'local2p' ? `${name(id)}: ` : '');
+      hint.textContent = humanRevenge
+        ? `${who(rv!.shooter)}↑↓ AIM · HOLD FIRE TO CHARGE · RELEASE TO SHOOT · WEAPON ◀▶`
+        : `${who(st.server)}SWING TO SERVE · ↑ HIGH · → FLICK · — SHORT`;
     }
   }
 
-  private banner(text: string, winner: 0 | 1): void {
+  /** A short text that floats up from a world position (damage numbers and pickups). */
+  private float(text: string, x: number, y: number, cls: string): void {
+    const el = document.createElement('div');
+    el.className = `float ${cls}`;
+    el.textContent = text;
+    el.style.left = `${(sx(x) / VIEW_W) * 100}%`;
+    el.style.top = `${(sy(y) / VIEW_H) * 100}%`;
+    this.root.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  private banner(text: string, winner: 0 | 1, size = ''): void {
     const el = this.root.querySelector<HTMLElement>('.banner')!;
     el.textContent = text;
-    el.className = `banner ${winner === 0 ? 'p1' : 'p2'}`;
+    el.className = `banner ${winner === 0 ? 'p1' : 'p2'} ${size}`;
     el.hidden = false;
     this.bannerTimer = 1300;
   }

@@ -1,8 +1,7 @@
 # How the bots and seeds work
 
 This document describes how the computer players ("bots") think, and how seeds make every
-match reproducible. It reflects the code as of milestone M1 (pure badminton). Weapon use by
-bots arrives in M2, and personalities in M3; those sections are marked as planned.
+match reproducible. It reflects the code as of milestone M2 (weapons). Personalities arrive in M3.
 
 - Bot code: `packages/bots/src/bot.ts`, difficulty profiles in `packages/bots/src/profiles.ts`
 - Seeds and randomness: `packages/sim/src/math/prng.ts`, used by `packages/sim/src/rules/match.ts`
@@ -213,13 +212,52 @@ In WATCH BOTS, press **AI INTENT**:
   contact. When it's off, the bot made a positioning error, or the shot is a surprise
   it hasn't reacted to yet.
 
+### Weapons (M2)
+
+On top of the rally logic above, bots use the arsenal:
+
+- **Loading shots.** When planning a return of a standard shuttle, the bot loads a weapon
+  with probability `weaponUse`, choosing by weight: Frag 3, Lead 2, Shock 2, Cluster 1,
+  Ghost 1 (only those with ammo and unlocked). For a Frag it picks a 2–4 s fuse. It cycles
+  the selection with the weapon buttons on alternate ticks, exactly like a human tapping.
+- **Hot potato.** If an incoming Frag would explode before (or within 15 ticks after) the
+  planned contact, the bot doesn't return it: it runs out of the blast radius instead.
+- **Shock shuttles.** The bot leaves an incoming Shock Shuttle when its HP is low, or
+  sometimes when it leads by 3+ points.
+- **Ghost shuttles.** The bot can't plan a return while the shuttle is invisible.
+- **Mines.** After its own hit, the bot sometimes selects a mine and throws it
+  (`weaponUse × 0.5` per shot, at most 2 active). It never plans to stand within 0.9 m of
+  a mine on its side.
+- **Crates.** Between shots, the bot walks to a landed crate on its half.
+- **Craters.** Contact heights are measured from the floor under the bot, so it still
+  positions correctly while standing in a crater.
+
+**Revenge Turns.** After a 0.3–0.75 s "thinking" pause, the shooter:
+
+1. Drinks a Medkit if HP ≤ 35.
+2. Otherwise tries every combination of weapon (Rocket, Mortar, Homing), angle (5–80°,
+   step 5) and power (0–1, step 0.05) in a **copy of the projectile physics**
+   (`simulateProjectile`), including wind. Each candidate scores the expected damage to the
+   target minus 1.5 × the damage to itself, minus 5 for using limited ammo. The Air
+   Strike is scored the same way at the target's position.
+3. If nothing scores above 2, it raises a Shield (HP ≤ 60) or skips.
+4. Adds human error: up to ±`aimNoise` degrees and ±`powerNoise` charge.
+5. Steers the aim with up/down, holds FIRE until the charge reaches the planned power, and
+   releases, exactly like a human.
+
+**Dodging.** As the target, the bot notices each incoming projectile with probability
+`dodge`, predicts where it will explode (same projectile copy), and runs out of the blast
+radius, preferring the net side when it is near a Rooftop pit.
+
+| Setting      | What it does                      | Easy | Medium | Hard |
+| ------------ | --------------------------------- | ---- | ------ | ---- |
+| `weaponUse`  | Chance to load a weapon shuttle   | 10%  | 22%    | 32%  |
+| `aimNoise`   | Revenge aim error, degrees        | 10   | 4      | 1.2  |
+| `powerNoise` | Revenge charge error              | 12%  | 5%     | 1.5% |
+| `dodge`      | Chance to notice and dodge a shot | 30%  | 70%    | 100% |
+
 ### Planned extensions
 
-- **M2: weapons.** Bots load special shuttles with a probability by difficulty, choose a
-  Frag fuse based on predicted flight time, decide whether to return a ticking Frag or
-  Shock shuttle or let it drop, throw mines, and aim Revenge Turn shots. Aiming tries a
-  grid of angles and powers in a copy of the simulation, picks the best hit, then adds aim
-  noise by difficulty. As targets, bots predict incoming projectiles and dodge.
 - **M3: personalities.** Purist (plays for points), Berserker (hunts for KOs) and
   Balanced (expected value) change the weights of those decisions. `simbatch` reports how
   often each personality wins by points versus by KO.

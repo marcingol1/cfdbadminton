@@ -94,7 +94,7 @@ describe('fall damage', () => {
     s.phase = 'matchOver';
     const p = s.players[0];
     p.x = -4;
-    knockback(p, 0, 12);
+    knockback(p, 0, 10);
     for (let i = 0; i < 180; i++) step(s, idle);
     expect(p.grounded).toBe(true);
     expect(p.hp).toBeLessThan(MAX_HP);

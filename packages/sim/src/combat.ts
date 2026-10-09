@@ -1,5 +1,5 @@
 import { WEAPON_TUNING } from './data/weapons';
-import { hypot2 } from './math/dmath';
+import { clamp, hypot2 } from './math/dmath';
 import type { DamageSource, MatchState, PlayerState, SimEvent } from './types';
 import { carveCrater, groundAt } from './world';
 
@@ -8,6 +8,10 @@ export const MAX_HP = 100;
 const BODY_LOW = 0.2;
 const BODY_HIGH = 1.6;
 const KNOCK_TICKS = 30;
+/** Horizontal share of blast knockback. */
+const SIDEWAYS_KNOCK = 0.6;
+const MAX_KNOCK_VX = 6;
+const MAX_KNOCK_VY = 10;
 /** `airPeak` value meaning "not in a knockback flight" (no fall damage). */
 export const NO_FALL = -1000;
 
@@ -52,8 +56,9 @@ export function raiseShield(p: PlayerState, amount: number, events: SimEvent[]):
 
 /** Launches a player; they lose control briefly and fall damage is armed. */
 export function knockback(p: PlayerState, vx: number, vy: number): void {
-  p.vx += vx;
-  p.vy += vy;
+  // Blasts add to the current motion, but stacked hits (Air Strike, chains) are capped.
+  p.vx = clamp(p.vx + vx, -MAX_KNOCK_VX, MAX_KNOCK_VX);
+  p.vy = clamp(p.vy + vy, -MAX_KNOCK_VY, MAX_KNOCK_VY);
   if (vy > 0.5) p.grounded = false;
   p.knockTicks = Math.max(p.knockTicks, KNOCK_TICKS);
   p.airPeak = p.airPeak <= NO_FALL ? p.y : Math.max(p.airPeak, p.y);
@@ -114,7 +119,13 @@ export function explode(
     const hit = blastHit(p, x, y, r);
     if (!hit) continue;
     applyDamage(p, blast.damage * hit.f, 'explosion', events);
-    knockback(p, hit.nx * blast.knockback * hit.f, hit.ny * blast.knockback * hit.f);
+    // More of an upward pop than a sideways shove, so a single blast rarely carries
+    // someone off the Rooftop from mid-court.
+    knockback(
+      p,
+      hit.nx * blast.knockback * hit.f * SIDEWAYS_KNOCK,
+      hit.ny * blast.knockback * hit.f,
+    );
   }
 
   const s = state.shuttle;

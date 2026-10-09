@@ -9,19 +9,28 @@ export interface KeyMap {
   down: string[];
   jump: string[];
   hit: string[];
+  /** Throw a mine / fire in a Revenge Turn (hold to charge). */
+  fire: string[];
+  prev: string[];
+  next: string[];
+  fuse: string[];
 }
 
-/** Single player: WASD or arrows, Space to jump, J / K to swing. */
+/** Single player: WASD or arrows, Space jump, J swing, K fire, Q/E weapons, R fuse. */
 export const SOLO_KEYS: KeyMap = {
   left: ['KeyA', 'ArrowLeft'],
   right: ['KeyD', 'ArrowRight'],
   up: ['KeyW', 'ArrowUp'],
   down: ['KeyS', 'ArrowDown'],
   jump: ['Space'],
-  hit: ['KeyJ', 'KeyK'],
+  hit: ['KeyJ'],
+  fire: ['KeyK'],
+  prev: ['KeyQ'],
+  next: ['KeyE'],
+  fuse: ['KeyR'],
 };
 
-/** Local 2P, left player: WASD, Left Shift to jump, Space to swing. */
+/** Local 2P, left player: WASD, L-Shift jump, Space swing, F fire, Q/E weapons, R fuse. */
 export const P1_SPLIT_KEYS: KeyMap = {
   left: ['KeyA'],
   right: ['KeyD'],
@@ -29,16 +38,24 @@ export const P1_SPLIT_KEYS: KeyMap = {
   down: ['KeyS'],
   jump: ['ShiftLeft'],
   hit: ['Space'],
+  fire: ['KeyF'],
+  prev: ['KeyQ'],
+  next: ['KeyE'],
+  fuse: ['KeyR'],
 };
 
-/** Local 2P, right player: arrows, Right Shift to jump, Enter to swing. */
+/** Local 2P, right player: arrows, R-Shift jump, Enter swing, / fire, [ ] weapons, \\ fuse. */
 export const P2_SPLIT_KEYS: KeyMap = {
   left: ['ArrowLeft'],
   right: ['ArrowRight'],
   up: ['ArrowUp'],
   down: ['ArrowDown'],
-  jump: ['ShiftRight', 'Slash'],
-  hit: ['Enter', 'Period'],
+  jump: ['ShiftRight'],
+  hit: ['Enter'],
+  fire: ['Slash'],
+  prev: ['BracketLeft'],
+  next: ['BracketRight'],
+  fuse: ['Backslash'],
 };
 
 const held = new Set<string>();
@@ -53,7 +70,7 @@ function listen(): void {
     if (e.repeat) return;
     held.add(e.code);
     tapped.add(e.code);
-    if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+    if (e.code === 'Space' || e.code.startsWith('Arrow') || e.code === 'Slash') e.preventDefault();
   });
   window.addEventListener('keyup', (e) => held.delete(e.code));
   window.addEventListener('blur', () => held.clear());
@@ -62,6 +79,8 @@ function listen(): void {
 export class KeyboardDevice implements InputDevice {
   /** Extra "hit" source, e.g. a mouse click on the canvas. */
   externalHit = false;
+  /** Extra "fire" source held down, e.g. the right mouse button. */
+  externalFire = false;
 
   constructor(private readonly map: KeyMap) {
     listen();
@@ -87,6 +106,10 @@ export class KeyboardDevice implements InputDevice {
     let buttons = 0;
     if (this.pressed(m.jump)) buttons |= Buttons.JUMP;
     if (this.pressed(m.hit) || this.externalHit) buttons |= Buttons.HIT;
+    if (this.pressed(m.fire) || this.externalFire) buttons |= Buttons.FIRE;
+    if (this.pressed(m.prev)) buttons |= Buttons.WEAPON_PREV;
+    if (this.pressed(m.next)) buttons |= Buttons.WEAPON_NEXT;
+    if (this.pressed(m.fuse)) buttons |= Buttons.FUSE;
     this.externalHit = false;
     return { moveX, moveY, buttons };
   }

@@ -1,6 +1,7 @@
 // Captures screenshots of the main screens for design review: `npm run screenshots`.
 // Uses the system Chromium when PLAYWRIGHT_CHROMIUM is set (e.g. in Claude Code cloud).
 import { chromium } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 
@@ -20,51 +21,51 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 810 } });
 page.on('pageerror', (e) => console.error('page error:', e.message));
-const shot = async (name: string) => {
-  await page.screenshot({ path: `${OUT}/${name}.png` });
+const shot = async (p: Page, name: string) => {
+  await p.screenshot({ path: `${OUT}/${name}.png` });
   console.log(`saved ${OUT}/${name}.png`);
 };
-const waitFor = (fn: string, timeout = 60000) =>
-  page.waitForFunction(fn, undefined, { timeout, polling: 50 });
+const state = '(window.deadminton.session && window.deadminton.session.state)';
+const waitFor = (p: Page, fn: string, timeout = 90000) =>
+  p.waitForFunction(fn, undefined, { timeout, polling: 30 });
 
 try {
-  await page.goto(`http://localhost:${PORT}/`);
+  // A fixed seed keeps the review screenshots comparable between builds.
+  await page.goto(`http://localhost:${PORT}/?seed=2026`);
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(2500);
-  await shot('01-menu');
+  await page.waitForTimeout(4000);
+  await shot(page, '01-menu');
 
-  // Watch mode with the AI-intent overlay, captured mid-rally.
+  // Bot vs bot with Chaos weapons in the Hall.
+  await page.click('[data-set="scheme"][data-value="chaos"]');
   await page.click('text=WATCH BOTS');
-  await page.click('text=AI INTENT');
   await waitFor(
-    `(() => { const s = window.deadminton.session.state; return s.phase === 'rally' && s.shuttle.mode === 'flight' && s.rally.hits >= 3; })()`,
+    page,
+    `${state}.phase === 'rally' && ${state}.shuttle.weapon !== null && ${state}.shuttle.mode === 'flight'`,
   );
-  await page.waitForTimeout(150);
-  await shot('02-watch-bots-intent');
+  await shot(page, '02-loaded-shuttle');
 
-  // Speed the bots up and wait for the match-over screen.
-  await page.click('text=8×');
-  await waitFor(`!!document.querySelector('.overlay:not([hidden]) h2')`, 120000);
-  await shot('03-match-over');
+  await waitFor(page, `${state}.phase === 'revenge' && ${state}.revenge.charging`);
+  await shot(page, '03-revenge-aiming');
+  await waitFor(page, `${state}.projectiles.length > 0`);
+  await page.waitForTimeout(250);
+  await shot(page, '04-revenge-rocket');
+  await waitFor(page, `${state}.terrain.some((t) => t < -0.15) && ${state}.phase === 'serve'`);
+  await shot(page, '05-craters');
 
-  // Player vs bot: serve with J, then capture a rally.
+  await page.click('text=4×');
+  await waitFor(page, `!!document.querySelector('.overlay:not([hidden]) h2')`, 240000);
+  await shot(page, '06-match-over');
+
+  // Player vs bot on the Rooftop, Standard weapons.
   await page.click('.overlay >> text=MENU');
+  await page.click('[data-set="scheme"][data-value="standard"]');
+  await page.click('[data-set="arena"][data-value="rooftop"]');
   await page.click('text=PLAY VS BOT');
-  await page.waitForTimeout(400);
-  await shot('04-vs-bot-serve');
-  await waitFor(
-    `(() => { const s = window.deadminton.session.state; return s.phase === 'rally' && s.shuttle.mode === 'flight' && s.shuttle.y > 2; })()`,
-  );
-  await shot('05-vs-bot-rally');
-
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(200);
-  await shot('06-pause');
-  await page.click('text=RESUME');
-  await page.keyboard.press('Backquote');
-  await page.waitForTimeout(200);
-  await shot('07-tuning-panel');
-  await page.keyboard.press('Backquote');
+  await page.waitForTimeout(600);
+  await page.keyboard.press('KeyE');
+  await page.waitForTimeout(300);
+  await shot(page, '07-vs-bot-hud');
 
   // Phone landscape with touch controls.
   const phone = await browser.newPage({
@@ -78,8 +79,7 @@ try {
   await phone.waitForTimeout(1500);
   await phone.tap('text=PLAY VS BOT');
   await phone.waitForTimeout(1200);
-  await phone.screenshot({ path: `${OUT}/08-phone-touch.png` });
-  console.log(`saved ${OUT}/08-phone-touch.png`);
+  await shot(phone, '08-phone-touch');
 } finally {
   await browser.close();
   server.kill();

@@ -1,6 +1,23 @@
 // Procedural sound effects (sfxr-style) with WebAudio, so the MVP needs no audio assets.
 
-type Sound = 'swing' | 'hit' | 'smash' | 'net' | 'land' | 'body' | 'point' | 'win' | 'serve';
+type Sound =
+  | 'swing'
+  | 'hit'
+  | 'smash'
+  | 'net'
+  | 'land'
+  | 'body'
+  | 'point'
+  | 'win'
+  | 'serve'
+  | 'explosion'
+  | 'launch'
+  | 'zap'
+  | 'beep'
+  | 'pickup'
+  | 'tick'
+  | 'ko'
+  | 'alarm';
 
 export class Sfx {
   private ctx: AudioContext | null = null;
@@ -60,6 +77,34 @@ export class Sfx {
         break;
       case 'win':
         [523, 659, 784, 1046].forEach((f, i) => this.tone(t + i * 0.12, 'square', f, f, 0.16, 0.2));
+        break;
+      case 'explosion':
+        this.noiseBurst(t, 0.45 * intensity, 900, 60, 1.0);
+        this.tone(t, 'sine', 120, 35, 0.4 * intensity, 0.6);
+        break;
+      case 'launch':
+        this.noiseBurst(t, 0.3, 400, 2400, 0.5);
+        break;
+      case 'zap':
+        this.tone(t, 'sawtooth', 1200, 200, 0.18, 0.25);
+        this.tone(t + 0.05, 'square', 900, 1400, 0.1, 0.15);
+        break;
+      case 'beep':
+        this.tone(t, 'square', 1500, 1500, 0.05, 0.12);
+        break;
+      case 'pickup':
+        [660, 990, 1320].forEach((f, i) => this.tone(t + i * 0.05, 'triangle', f, f, 0.08, 0.2));
+        break;
+      case 'tick':
+        this.tone(t, 'square', 2000, 2000, 0.02, 0.08);
+        break;
+      case 'ko':
+        this.tone(t, 'square', 220, 55, 0.9, 0.35);
+        this.noiseBurst(t, 0.6, 300, 80, 0.6);
+        break;
+      case 'alarm':
+        this.tone(t, 'square', 440, 440, 0.1, 0.18);
+        this.tone(t + 0.14, 'square', 330, 330, 0.16, 0.18);
         break;
     }
   }

@@ -19,6 +19,10 @@ export class TouchDevice implements InputDevice {
   private hitHeld = false;
   private jumpTaps = 0;
   private jumpHeld = false;
+  private fireTaps = 0;
+  private fireHeld = false;
+  private weaponTaps = 0;
+  private fuseTaps = 0;
   private readonly knob: HTMLElement;
   private readonly base: HTMLElement;
 
@@ -28,7 +32,10 @@ export class TouchDevice implements InputDevice {
     this.root.innerHTML = `
       <div class="touch-stick-zone"><div class="touch-base"><div class="touch-knob"></div></div></div>
       <button class="touch-btn touch-jump" aria-label="Jump">JUMP</button>
-      <button class="touch-btn touch-hit" aria-label="Swing">HIT</button>`;
+      <button class="touch-btn touch-hit" aria-label="Swing">HIT</button>
+      <button class="touch-btn touch-fire" aria-label="Fire">FIRE</button>
+      <button class="touch-btn touch-weapon" aria-label="Next weapon">WPN</button>
+      <button class="touch-btn touch-fuse" aria-label="Fuse">FUSE</button>`;
     parent.appendChild(this.root);
     this.base = this.root.querySelector('.touch-base')!;
     this.knob = this.root.querySelector('.touch-knob')!;
@@ -66,6 +73,16 @@ export class TouchDevice implements InputDevice {
     this.bindButton('.touch-jump', (down) => {
       this.jumpHeld = down;
       if (down) this.jumpTaps++;
+    });
+    this.bindButton('.touch-fire', (down) => {
+      this.fireHeld = down;
+      if (down) this.fireTaps++;
+    });
+    this.bindButton('.touch-weapon', (down) => {
+      if (down) this.weaponTaps++;
+    });
+    this.bindButton('.touch-fuse', (down) => {
+      if (down) this.fuseTaps++;
     });
   }
 
@@ -108,8 +125,14 @@ export class TouchDevice implements InputDevice {
     let buttons = 0;
     if (this.hitTaps > 0 || this.hitHeld) buttons |= Buttons.HIT;
     if (this.jumpTaps > 0 || this.jumpHeld) buttons |= Buttons.JUMP;
+    if (this.fireTaps > 0 || this.fireHeld) buttons |= Buttons.FIRE;
+    if (this.weaponTaps > 0) buttons |= Buttons.WEAPON_NEXT;
+    if (this.fuseTaps > 0) buttons |= Buttons.FUSE;
     this.hitTaps = 0;
     this.jumpTaps = 0;
+    this.fireTaps = 0;
+    this.weaponTaps = 0;
+    this.fuseTaps = 0;
     return { moveX: quantizeAxis(dz(this.vec.x)), moveY: quantizeAxis(dz(this.vec.y)), buttons };
   }
 }

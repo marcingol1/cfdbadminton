@@ -10,6 +10,7 @@ export interface MatchStats {
   smashes: [number, number];
   winners: [number, number];
   errors: [number, number];
+  damageTaken: [number, number];
 }
 
 /** Positions captured before a tick, for render interpolation. */
@@ -42,6 +43,7 @@ export class MatchSession {
     smashes: [0, 0],
     winners: [0, 0],
     errors: [0, 0],
+    damageTaken: [0, 0],
   };
 
   constructor(
@@ -116,6 +118,8 @@ export class MatchSession {
       if (e.type === 'hit') {
         this.rallyHits++;
         if (e.shot === 'smash') this.stats.smashes[e.player]++;
+      } else if (e.type === 'damage') {
+        this.stats.damageTaken[e.player] += e.amount;
       } else if (e.type === 'point') {
         this.stats.rallies++;
         this.stats.longestRally = Math.max(this.stats.longestRally, this.rallyHits);

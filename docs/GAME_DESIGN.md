@@ -184,8 +184,8 @@ also cause knockback and craters, and they push the shuttle if it is inside the 
 | -------------------- | ---- | --------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Standard shuttle** | ∞    | –         | A body hit at smash speed (> 20 m/s) deals 3–8 dmg                                           | —                                                                                              |
 | **Frag Shuttle**     | 2    | 0         | **Fuse 1–5 s, chosen by you** (Worms grenade). Explodes wherever it is: 35 dmg, 1.6 m radius | **Hot potato:** return it and the fuse keeps ticking, or let it land (lose the point) and run. |
-| **Shock Shuttle**    | 3    | 0         | Whoever hits it next takes 12 dmg and a 0.4 s stun                                           | Return it and take the damage, or concede the point.                                           |
-| **Lead Shuttle**     | 3    | 0         | Low drag, so it flies very fast. A body hit deals 25 dmg plus big knockback                  | Hard to read. Stay deep.                                                                       |
+| **Shock Shuttle**    | 3    | 0         | Whoever hits it next takes 10 dmg and a 0.4 s stun                                           | Return it and take the damage, or concede the point.                                           |
+| **Lead Shuttle**     | 3    | 0         | Low drag, so it flies very fast. A body hit deals 18 dmg plus big knockback                  | Hard to read. Stay deep.                                                                       |
 | **Cluster Shuttle**  | 1    | 3 rallies | On floor contact, splits into 4 bomblets: 10 dmg each, 0.8 m radius                          | Get away from the landing point.                                                               |
 | **Ghost Shuttle**    | 2    | 0         | Invisible for 0.8 s after crossing the net (only a floor shadow shows)                       | Read the hitter's swing.                                                                       |
 
@@ -199,10 +199,10 @@ also cause knockback and craters, and they push the shuttle if it is inside the 
 
 | Weapon             | Ammo | Delay | Effect                                                            |
 | ------------------ | ---- | ----- | ----------------------------------------------------------------- |
-| **Rocket**         | ∞    | 0     | Aimed, affected by wind, explodes on impact: 20 dmg, 1.5 m radius |
-| **Mortar**         | 2    | 2     | High arc, splits into 3 at apex: 12 dmg each                      |
-| **Homing Missile** | 1    | 4     | Locks on to the target's position at launch: 30 dmg               |
-| **Air Strike**     | 1    | 6     | Drops 5 missiles in a line over a chosen spot: 15 dmg each        |
+| **Rocket**         | ∞    | 0     | Aimed, affected by wind, explodes on impact: 14 dmg, 1.5 m radius |
+| **Mortar**         | 2    | 2     | High arc, splits into 3 at apex: 10 dmg each                      |
+| **Homing Missile** | 1    | 4     | Locks on to the target's position at launch: 24 dmg               |
+| **Air Strike**     | 1    | 6     | Drops 5 missiles in a line over a chosen spot: 12 dmg each        |
 
 ### 7.4 Utilities: usable instead of attacking in a Revenge Turn
 
@@ -233,7 +233,12 @@ All weapon parameters live in **data files**, not in code, so balancing never ne
 ## 9. Damage, knockback, death
 
 - Explosion damage: `max * (1 - distance / radius)`. Knockback scales the same way.
-- Fall damage: 2 dmg per meter beyond a 3 m drop. This only applies after a knockback.
+- Fall damage: 4 dmg per meter beyond a 2 m drop. This only applies after a knockback.
+- Knockback is mostly an upward pop (60% of the push is sideways) and is capped at 6 m/s
+  sideways and 10 m/s up, so stacked blasts (an Air Strike) can't fling someone across the
+  court. Craters are at most 0.45 m deep.
+- _Tuning note (M2):_ damage values in §7 were lowered after bot-vs-bot balancing. Medium vs
+  Medium bots now end 35–60% of matches by KO in both arenas (target: 35–65%).
 - **Death presentation is cartoon only**: a ragdoll flop, a puff of smoke and a tombstone
   with a racket on top. There is no blood or gore. This keeps the game within PEGI 7–12 /
   ESRB E10+, which matters for the App Store and Google Play.
@@ -254,15 +259,15 @@ shot, and the timing (distance from the racket's sweet spot) sets its quality an
 | Down             | Drop / net shot       | Drop                         |
 | Neutral          | Lift                  | Drive                        |
 
-| Action        | Keyboard + mouse             | Gamepad              | Touch (landscape)                   |
-| ------------- | ---------------------------- | -------------------- | ----------------------------------- |
-| Move          | A / D                        | Left stick           | Virtual stick (left thumb)          |
-| Jump          | W / Space                    | A                    | Jump button                         |
-| Hit           | J / left mouse button        | X                    | Big hit button (right thumb)        |
-| Weapon select | 1–6 / mouse wheel            | Bumpers              | Weapon button opens a radial menu   |
-| Throw / Fire  | K / right mouse button       | Y / RT               | Fire button                         |
-| Frag fuse     | Q / E                        | D-pad                | +/- on the weapon chip              |
-| Revenge aim   | Mouse aim, hold to set power | Right stick, hold RT | Drag back like a slingshot, release |
+| Action        | Keyboard + mouse            | Gamepad            | Touch (landscape)            |
+| ------------- | --------------------------- | ------------------ | ---------------------------- |
+| Move          | A / D                       | Left stick         | Virtual stick (left thumb)   |
+| Jump          | W / Space                   | A                  | Jump button                  |
+| Hit           | J / left mouse button       | X                  | Big hit button (right thumb) |
+| Weapon select | Q / E (previous / next)     | LB / RB            | WPN button (next)            |
+| Throw / Fire  | K / right mouse button      | Y / RT             | FIRE button                  |
+| Frag fuse     | R (cycles 1–5 s)            | B                  | FUSE button                  |
+| Revenge aim   | ↑ / ↓ aim, hold K to charge | Stick, hold Y / RT | Stick up/down, hold FIRE     |
 
 **Assists** (on by default against Easy bots and on touch, toggleable): a landing marker
 for the shuttle, a slightly larger hit window, and aim assist toward the court.
