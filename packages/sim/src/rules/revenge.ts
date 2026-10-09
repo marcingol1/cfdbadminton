@@ -19,9 +19,18 @@ const MAX_EXTRA_RESOLVE_TICKS = 240;
 export const MIN_AIM = -30;
 export const MAX_AIM = 85;
 
-/** R-40: the loser of a point gets a Revenge Turn if they hold any revenge weapon or utility. */
+/**
+ * R-40: chance that losing a point grants a Revenge Turn. Zero unless the match has
+ * Revenge Turns switched on; then the match override, else the scheme's chance.
+ */
+export function revengeChance(state: MatchState): number {
+  if (!state.config.revengeTurns) return 0;
+  return state.config.revengeChance ?? SCHEMES[state.config.scheme].revengeChance;
+}
+
+/** R-40: a Revenge Turn needs revenge enabled and any revenge weapon or utility in hand. */
 export function canRevenge(state: MatchState, loser: PlayerId): boolean {
-  if (!SCHEMES[state.config.scheme].revenge) return false;
+  if (revengeChance(state) <= 0) return false;
   const p = state.players[loser];
   return !p.dead && revengeOptions(state, p).some((o) => o !== null);
 }

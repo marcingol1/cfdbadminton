@@ -47,6 +47,10 @@ export interface MatchConfig {
   timeLimitSec: number | null;
   /** R-42 option: the Revenge Turn target is frozen (pure Worms). */
   classicTargeting: boolean;
+  /** R-40 option: Revenge Turns on or off (off by default). */
+  revengeTurns: boolean;
+  /** R-40: chance a lost point grants a Revenge Turn when they're on; null = the scheme's. */
+  revengeChance: number | null;
   tuning: Tuning;
 }
 

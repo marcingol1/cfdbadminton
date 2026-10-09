@@ -273,7 +273,10 @@ describe('mines', () => {
 
 describe('supply crates (§8)', () => {
   it('drop after a rally in Chaos, land, and are collected by walking into them', () => {
-    const s = rallyState({ x: 3, y: 0.3, vx: 0, vy: -5 }, 0, 1, { scheme: 'chaos' });
+    const s = rallyState({ x: 3, y: 0.3, vx: 0, vy: -5 }, 0, 1, {
+      scheme: 'chaos',
+      revengeChance: 0,
+    });
     s.players[0].hp = 50;
     const drop = runUntil(s, 'crateDrop', 900, (st) =>
       st.phase === 'revenge' ? skipRevenge(st) : idle,

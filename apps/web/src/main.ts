@@ -31,6 +31,7 @@ function loadSettings(): UiSettings {
     scheme: 'standard',
     arena: 'hall',
     bestOf: 1,
+    revenge: false,
     assistMarker: true,
     keyHints: true,
     muted: false,
@@ -152,13 +153,20 @@ class App implements SceneHost {
   private config(mode: SessionMode): Partial<MatchConfig> {
     // The title screen shows off: bots play Chaos (lots of weapons) behind the menu.
     if (mode === 'attract')
-      return { pointsToWin: 11, scheme: 'chaos', arena: 'hall', tuning: this.tuning };
+      return {
+        pointsToWin: 11,
+        scheme: 'chaos',
+        arena: 'hall',
+        revengeTurns: true,
+        tuning: this.tuning,
+      };
     const s = this.settings;
     return {
       pointsToWin: s.pointsToWin,
       scheme: s.scheme,
       arena: s.arena,
       bestOf: s.bestOf,
+      revengeTurns: s.revenge,
       tuning: this.tuning,
     };
   }

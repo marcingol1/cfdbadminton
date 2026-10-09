@@ -26,6 +26,8 @@ export interface UiSettings {
   scheme: SchemeId;
   arena: ArenaId;
   bestOf: 1 | 3;
+  /** Revenge Turns on a random share of lost points (off by default). */
+  revenge: boolean;
   assistMarker: boolean;
   keyHints: boolean;
   muted: boolean;
@@ -201,6 +203,7 @@ export class Ui {
       if (set === 'scheme') this.settings.scheme = v as SchemeId;
       if (set === 'arena') this.settings.arena = v as ArenaId;
       if (set === 'bestOf') this.settings.bestOf = Number(v) as 1 | 3;
+      if (set === 'revenge') this.settings.revenge = v === 'on';
       if (set === 'speed') return this.actions.setSpeed(Number(v));
       this.actions.settingsChanged();
       if (this.screen === 'menu') this.renderMenu();
@@ -270,6 +273,8 @@ export class Ui {
         <div class="chips">${([7, 11, 21] as const).map((p) => chip('points', p, String(p), s.pointsToWin === p)).join('')}</div>
         <span class="label">GAMES</span>
         <div class="chips">${chip('bestOf', 1, '1', s.bestOf === 1)}${chip('bestOf', 3, 'BEST OF 3', s.bestOf === 3)}</div>
+        <span class="label">REVENGE</span>
+        <div class="chips">${chip('revenge', 'off', 'OFF', !s.revenge)}${chip('revenge', 'on', 'ON · RANDOM', s.revenge)}</div>
       </div>
       <button class="link" data-action="help">HOW TO PLAY</button>
       <p class="footer">M2 preview · weapons, KOs, Revenge Turns · personalities arrive in M3</p>`;
@@ -283,7 +288,7 @@ export class Ui {
         <p><b>Rally</b>: land the shuttle in on the other side, or make your opponent hit it out, into the net, or with their body. Damage alone never ends a rally.</p>
         <p><b>Move</b> A / D · <b>Jump</b> Space · <b>Swing</b> J or left click. Hold a direction while swinging: ↑ clear · ↓ drop / net shot · → (toward the net) <b>smash</b> when the shuttle is high, else a drive. Timing decides accuracy. Watch the <b>wind</b>.</p>
         <p><b>Loaded shuttles</b>: Q / E picks a weapon for your next hit, R sets the Frag fuse (1–5 s). <b>Frag</b> explodes when its fuse runs out, even if they hit it back (hot potato!). <b>Shock</b> hurts and stuns whoever hits it next. <b>Lead</b> flies fast and hurts on a body hit. <b>Cluster</b> splits into bomblets on landing. <b>Ghost</b> turns invisible after the net. <b>Mine</b>: select it and press K to throw it onto their side.</p>
-        <p><b>Revenge Turn</b>: lose a point and you get one Worms-style shot. Q / E picks Rocket, Mortar, Homing Missile, Air Strike, Medkit, Shield (or skip). ↑ / ↓ aims, hold K (or right click) to charge, release to fire. Your opponent can run to dodge. Revenge shots never score points.</p>
+        <p><b>Revenge Turn</b> (optional, off by default): when it's on, losing a point sometimes (about 1 in 5) gives you one Worms-style shot. Q / E picks Rocket, Mortar, Homing Missile, Air Strike, Medkit, Shield (or skip). ↑ / ↓ aims, hold K (or right click) to charge, release to fire. Your opponent can run to dodge. Revenge shots never score points.</p>
         <p><b>Crates</b> parachute in: walk into them for ammo, health or a shield. Shoot them and they explode. Heavy weapons unlock after a few rallies.</p>
         <p><b>Local 2P</b>: left player WASD, L-Shift jump, Space swing, F fire, Q/E weapons, R fuse · right player arrows, R-Shift jump, Enter swing, / fire, [ ] weapons, \\ fuse. <b>Gamepad</b>: A jump, X swing, Y/RT fire, LB/RB weapons, B fuse.</p>
         <p>Esc pauses · \` opens the tuning panel.</p>

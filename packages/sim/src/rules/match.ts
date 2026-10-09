@@ -14,7 +14,7 @@ import { DEFAULT_TUNING } from '../data/tuning';
 import { SCHEMES, WEAPONS, WEAPON_TUNING } from '../data/weapons';
 import { Buttons, intentFromInput } from '../input';
 import { clamp, hypot2 } from '../math/dmath';
-import { nextRange, nextU32, seedRng } from '../math/prng';
+import { nextFloat, nextRange, nextU32, seedRng } from '../math/prng';
 import { advanceFlight } from '../physics/shuttle';
 import { chooseShot, playShot } from '../shots';
 import type {
@@ -43,7 +43,7 @@ import {
   sideSign,
 } from '../world';
 import { rallyWeaponControls, updatePlayer } from './player';
-import { canRevenge, startRevenge, stepRevenge } from './revenge';
+import { canRevenge, revengeChance, startRevenge, stepRevenge } from './revenge';
 
 /** R-01: hard cap on points for each target score. */
 export const POINT_CAP: Record<PointsToWin, number> = { 7: 10, 11: 15, 21: 30 };
@@ -87,6 +87,8 @@ export function createMatch(config: Partial<MatchConfig>, seed: number): MatchSt
     scheme: config.scheme ?? 'standard',
     timeLimitSec: config.timeLimitSec ?? null,
     classicTargeting: config.classicTargeting ?? false,
+    revengeTurns: config.revengeTurns ?? false,
+    revengeChance: config.revengeChance ?? null,
     // Deep copy so live tuning edits never leak between matches.
     tuning: structuredClone(config.tuning ?? DEFAULT_TUNING),
   };
@@ -414,8 +416,10 @@ function awardPoint(
     state.pendingGame = true; // R-05
     return;
   }
+  // R-40: a Revenge Turn is a random event (seeded, so replays stay exact).
   const loser = other(winner);
-  state.pendingRevenge = canRevenge(state, loser) ? loser : null; // R-40
+  const roll = nextFloat(state.rng);
+  state.pendingRevenge = roll < revengeChance(state) && canRevenge(state, loser) ? loser : null;
 }
 
 /** Blows up a Frag Shuttle where it is. R-27: in a live rally it counts as landing below. */

@@ -19,7 +19,9 @@ function press(player: PlayerId, frame: Partial<InputFrame>): readonly [InputFra
 }
 
 /** A Revenge Turn for player 0 with no wind; players at fixed spots. */
-function revenge(config: Partial<MatchConfig> = { scheme: 'standard' }): MatchState {
+function revenge(
+  config: Partial<MatchConfig> = { scheme: 'standard', revengeTurns: true },
+): MatchState {
   const s = createMatch(config, 3);
   s.wind = 0;
   s.players[0].x = -3;
@@ -37,23 +39,76 @@ function chargeAndRelease(s: MatchState, ticks: number) {
 }
 
 describe('R-40 who gets a Revenge Turn', () => {
-  it('the loser of a point gets one after the point pause', () => {
-    const s = rallyState({ x: -3, y: 0.3, vx: 0, vy: -5 }, 1, 1, { scheme: 'standard' });
+  it('the loser of a point gets one after the point pause (when the roll says so)', () => {
+    const s = rallyState({ x: -3, y: 0.3, vx: 0, vy: -5 }, 1, 1, {
+      scheme: 'standard',
+      revengeTurns: true,
+      revengeChance: 1,
+    });
     runUntil(s, 'point', 10);
     const start = runUntil(s, 'revengeStart', s.config.tuning.pointPauseTicks + 2);
     expect(start).toEqual({ type: 'revengeStart', shooter: 0, target: 1 });
     expect(s.phase).toBe('revenge');
   });
 
+  it('is a random event: about 18% of lost points in Standard, seeded', () => {
+    let turns = 0;
+    const points = 600;
+    for (let i = 0; i < points; i++) {
+      const s = rallyState({ x: -3, y: 0.3, vx: 0, vy: -5 }, 1, 1000 + i, {
+        scheme: 'standard',
+        revengeTurns: true,
+      });
+      runUntil(s, 'point', 10);
+      if (s.pendingRevenge !== null) turns++;
+    }
+    expect(turns / points).toBeGreaterThan(0.13);
+    expect(turns / points).toBeLessThan(0.23);
+  });
+
+  it('never happens with a 0% chance, always with 100%', () => {
+    for (const [chance, expected] of [
+      [0, null],
+      [1, 0],
+    ] as const) {
+      const s = rallyState({ x: -3, y: 0.3, vx: 0, vy: -5 }, 1, 5, {
+        scheme: 'standard',
+        revengeTurns: true,
+        revengeChance: chance,
+      });
+      runUntil(s, 'point', 10);
+      expect(s.pendingRevenge).toBe(expected);
+    }
+  });
+
+  it('are off unless the match switches them on', () => {
+    const s = rallyState({ x: -3, y: 0.3, vx: 0, vy: -5 }, 1, 1, {
+      scheme: 'standard',
+      revengeChance: 1,
+    });
+    expect(s.config.revengeTurns).toBe(false);
+    runUntil(s, 'point', 10);
+    expect(s.pendingRevenge).toBeNull();
+  });
+
   it('no Revenge Turns in the Purist scheme', () => {
-    const s = rallyState({ x: -3, y: 0.3, vx: 0, vy: -5 }, 1, 1, { scheme: 'purist' });
+    const s = rallyState({ x: -3, y: 0.3, vx: 0, vy: -5 }, 1, 1, {
+      scheme: 'purist',
+      revengeTurns: true,
+      revengeChance: 1,
+    });
     runUntil(s, 'point', 10);
     for (let i = 0; i <= s.config.tuning.pointPauseTicks; i++) step(s, idle);
     expect(s.phase).toBe('serve');
   });
 
   it('no Revenge Turn after the point that wins a game', () => {
-    const s = rallyState({ x: -3, y: 0.3, vx: 0, vy: -5 }, 1, 1, { scheme: 'standard', bestOf: 3 });
+    const s = rallyState({ x: -3, y: 0.3, vx: 0, vy: -5 }, 1, 1, {
+      scheme: 'standard',
+      bestOf: 3,
+      revengeTurns: true,
+      revengeChance: 1,
+    });
     s.score = [0, 10];
     runUntil(s, 'gameOver', 10);
     for (let i = 0; i <= s.config.tuning.pointPauseTicks; i++) step(s, idle);
@@ -106,7 +161,7 @@ describe('R-42 the target can move (or not)', () => {
   });
 
   it('classic targeting freezes the target', () => {
-    const s = revenge({ scheme: 'standard', classicTargeting: true });
+    const s = revenge({ scheme: 'standard', revengeTurns: true, classicTargeting: true });
     for (let i = 0; i < 30; i++) step(s, [NEUTRAL_INPUT, { ...NEUTRAL_INPUT, moveX: 127 }]);
     expect(s.players[1].x).toBe(3);
   });
@@ -190,7 +245,7 @@ describe('Revenge weapons and utilities', () => {
   });
 
   it('Air Strike drops a line of missiles on the cursor', () => {
-    const s = revenge({ scheme: 'chaos' });
+    const s = revenge({ scheme: 'chaos', revengeTurns: true });
     select(s, 'airstrike');
     step(s, press(0, { buttons: Buttons.FIRE }));
     expect(s.projectiles.filter((p) => p.kind === 'airMissile')).toHaveLength(5);
@@ -202,7 +257,7 @@ describe('Revenge weapons and utilities', () => {
   });
 
   it('a Homing Missile curves toward where the target stood', () => {
-    const s = revenge({ scheme: 'chaos' });
+    const s = revenge({ scheme: 'chaos', revengeTurns: true });
     select(s, 'homing');
     chargeAndRelease(s, 10);
     const boom = runUntil(s, 'explosion', 400);

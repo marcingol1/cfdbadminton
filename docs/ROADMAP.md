@@ -92,13 +92,13 @@ a level editor, online spectating.
 
 ## Decisions (approved 2026-10-09)
 
-| #   | Decision                 | Outcome                                                                                                 |
-| --- | ------------------------ | ------------------------------------------------------------------------------------------------------- |
-| D1  | Core loop                | ✅ **Real-time rallies, plus a Worms-style Revenge Turn for the player who lost the point**             |
-| D2  | Revenge target           | ✅ **May move and dodge.** "Classic targeting" (frozen target) is a match option                        |
-| D3  | Default match length     | ✅ **11 points, win by 2, cap 15, single game**                                                         |
-| D4  | Existing NestJS scaffold | ✅ **Removed in M0.** Written from scratch; only the idea stays                                         |
-| D5  | Engine                   | ✅ **TypeScript + Phaser + custom sim + Capacitor**                                                     |
-| D6  | Art direction            | ✅ **Pixel art.** See `GAME_DESIGN.md` §15. All MVP art is drawn in code; no external assets are needed |
-| D7  | Web hosting              | ✅ **Vercel**: production from `master`, preview deployments for every pull request                     |
-| D8  | Name                     | ✅ (default) **"Deadminton"**, still a working title                                                    |
+| #   | Decision                 | Outcome                                                                                                                                                                               |
+| --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Core loop                | ✅ **Real-time rallies.** Worms-style Revenge Turns are an **option, off by default**; when on, a lost point triggers one at random (~18%, Chaos ~40%). Changed after M2 playtesting. |
+| D2  | Revenge target           | ✅ **May move and dodge.** "Classic targeting" (frozen target) is a match option                                                                                                      |
+| D3  | Default match length     | ✅ **11 points, win by 2, cap 15, single game**                                                                                                                                       |
+| D4  | Existing NestJS scaffold | ✅ **Removed in M0.** Written from scratch; only the idea stays                                                                                                                       |
+| D5  | Engine                   | ✅ **TypeScript + Phaser + custom sim + Capacitor**                                                                                                                                   |
+| D6  | Art direction            | ✅ **Pixel art.** See `GAME_DESIGN.md` §15. All MVP art is drawn in code; no external assets are needed                                                                               |
+| D7  | Web hosting              | ✅ **Vercel**: production from `master`, preview deployments for every pull request                                                                                                   |
+| D8  | Name                     | ✅ (default) **"Deadminton"**, still a working title                                                                                                                                  |

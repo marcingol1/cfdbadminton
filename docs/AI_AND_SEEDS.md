@@ -22,13 +22,14 @@ any device and in any browser.
 
 ### What the seed decides
 
-| Random choice                      | When it is drawn             |
-| ---------------------------------- | ---------------------------- |
-| Who serves first (coin toss, R-10) | Once, at `createMatch`       |
-| Wind strength and direction        | At the start of every rally  |
-| Shot error from imperfect timing   | On every hit                 |
-| _(M2)_ crate drops, crate contents | Between rallies              |
-| _(M2)_ cluster bomblet spread      | When a cluster shuttle lands |
+| Random choice                                                     | When it is drawn             |
+| ----------------------------------------------------------------- | ---------------------------- |
+| Who serves first (coin toss, R-10)                                | Once, at `createMatch`       |
+| Wind strength and direction                                       | At the start of every rally  |
+| Shot error from imperfect timing                                  | On every hit                 |
+| Crate drops and contents                                          | Between rallies              |
+| Whether a lost point gives a Revenge Turn (when the option is on) | After each point             |
+| Cluster bomblet spread                                            | When a cluster shuttle lands |
 
 Wind is drawn uniformly between −`windMax` and +`windMax` for the arena (±1 m/s in the
 Sports Hall) and rounded to 0.1 m/s.
@@ -232,7 +233,8 @@ On top of the rally logic above, bots use the arsenal:
 - **Craters.** Contact heights are measured from the floor under the bot, so it still
   positions correctly while standing in a crater.
 
-**Revenge Turns.** After a 0.3–0.75 s "thinking" pause, the shooter:
+**Revenge Turns** (when the option is on and the roll grants one). After a 0.3–0.75 s
+"thinking" pause, the shooter:
 
 1. Drinks a Medkit if HP ≤ 35.
 2. Otherwise tries every combination of weapon (Rocket, Mortar, Homing), angle (5–80°,

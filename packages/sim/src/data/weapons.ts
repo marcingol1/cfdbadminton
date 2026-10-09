@@ -50,18 +50,18 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     name: 'Frag Shuttle',
     category: 'loaded',
     radius: 1.6,
-    damage: 35,
+    damage: 45,
     knockback: 9,
   }),
-  shock: w({ id: 'shock', name: 'Shock Shuttle', category: 'loaded', damage: 10 }),
-  lead: w({ id: 'lead', name: 'Lead Shuttle', category: 'loaded', damage: 18, knockback: 8 }),
+  shock: w({ id: 'shock', name: 'Shock Shuttle', category: 'loaded', damage: 15 }),
+  lead: w({ id: 'lead', name: 'Lead Shuttle', category: 'loaded', damage: 25, knockback: 8 }),
   cluster: w({
     id: 'cluster',
     name: 'Cluster Shuttle',
     category: 'loaded',
     delay: 3,
     radius: 0.8,
-    damage: 10,
+    damage: 14,
     knockback: 4,
   }),
   ghost: w({ id: 'ghost', name: 'Ghost Shuttle', category: 'loaded' }),
@@ -71,7 +71,7 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     category: 'throwable',
     delay: 2,
     radius: 1.2,
-    damage: 25,
+    damage: 30,
     knockback: 7,
   }),
   rocket: w({
@@ -79,7 +79,7 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     name: 'Rocket',
     category: 'revenge',
     radius: 1.5,
-    damage: 14,
+    damage: 20,
     knockback: 7,
   }),
   mortar: w({
@@ -88,7 +88,7 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     category: 'revenge',
     delay: 2,
     radius: 1.0,
-    damage: 10,
+    damage: 12,
     knockback: 5,
   }),
   homing: w({
@@ -97,7 +97,7 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     category: 'revenge',
     delay: 4,
     radius: 1.5,
-    damage: 24,
+    damage: 30,
     knockback: 8,
   }),
   airstrike: w({
@@ -106,7 +106,7 @@ export const WEAPONS: Record<WeaponId, WeaponSpec> = {
     category: 'revenge',
     delay: 6,
     radius: 1.0,
-    damage: 12,
+    damage: 15,
     knockback: 6,
   }),
   medkit: w({ id: 'medkit', name: 'Medkit', category: 'utility', damage: 25 }),
@@ -155,8 +155,8 @@ export interface Scheme {
   id: SchemeId;
   name: string;
   ammo: Record<WeaponId, number>;
-  /** R-40: Revenge Turns on/off. */
-  revenge: boolean;
+  /** R-40: chance that losing a point grants a Revenge Turn (0 = never). */
+  revengeChance: number;
   /** Chance of a supply crate after each rally (§8). */
   crateChance: number;
   /** R-52 weapon delays on/off. */
@@ -188,7 +188,7 @@ export const SCHEMES: Record<SchemeId, Scheme> = {
     id: 'purist',
     name: 'Purist',
     ammo: mapAmmo(() => 0),
-    revenge: false,
+    revengeChance: 0,
     crateChance: 0,
     delays: true,
   },
@@ -196,7 +196,7 @@ export const SCHEMES: Record<SchemeId, Scheme> = {
     id: 'standard',
     name: 'Standard',
     ammo: STANDARD_AMMO,
-    revenge: true,
+    revengeChance: 0.18,
     crateChance: 0.2,
     delays: true,
   },
@@ -204,7 +204,7 @@ export const SCHEMES: Record<SchemeId, Scheme> = {
     id: 'chaos',
     name: 'Chaos',
     ammo: mapAmmo((n) => n * 2),
-    revenge: true,
+    revengeChance: 0.4,
     crateChance: 1,
     delays: false,
   },

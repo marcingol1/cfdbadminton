@@ -14,6 +14,7 @@ const { values } = parseArgs({
     points: { type: 'string', default: '11' },
     scheme: { type: 'string', default: 'standard' },
     arena: { type: 'string', default: 'hall' },
+    revenge: { type: 'boolean', default: false },
     out: { type: 'string' },
   },
 });
@@ -50,7 +51,12 @@ const weapons: Record<string, number> = {};
 const started = performance.now();
 
 for (let i = 0; i < n; i++) {
-  const r = runBotMatch(a, b, seed + i * 7919, { pointsToWin, scheme, arena });
+  const r = runBotMatch(a, b, seed + i * 7919, {
+    pointsToWin,
+    scheme,
+    arena,
+    revengeTurns: values.revenge,
+  });
   if (r.winReason) winReasons[r.winReason] = (winReasons[r.winReason] ?? 0) + 1;
   for (const [k, v] of Object.entries(r.damage)) damage[k] = (damage[k] ?? 0) + v;
   for (const [k, v] of Object.entries(r.weapons)) weapons[k] = (weapons[k] ?? 0) + v;
@@ -69,6 +75,7 @@ const report = {
   matchup: `${a} (P1) vs ${b} (P2)`,
   scheme,
   arena,
+  revengeTurns: values.revenge,
   matches: n,
   wins: { p1: wins[0], p2: wins[1], unfinished },
   // GAME_DESIGN §2 target for evenly matched bots: 35–65 % of matches end by KO.
