@@ -1,0 +1,13 @@
+{
+  "name": "@deadminton/bots",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI controllers that drive the sim through the same input interface as humans.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@deadminton/sim": "0.1.0"
+  }
+}

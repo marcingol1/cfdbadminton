@@ -1,0 +1,14 @@
+{
+  "name": "@deadminton/simbatch",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless bot-vs-bot batch runner for balancing.",
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@deadminton/bots": "0.1.0",
+    "@deadminton/sim": "0.1.0"
+  }
+}
