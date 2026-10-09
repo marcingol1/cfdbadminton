@@ -617,11 +617,31 @@ h2.p2 {
   width: 100%;
 }
 
-/* ---------- Touch controls ---------- */
+/* ---------- Touch controls ----------
+   Fixed to the whole screen (not the 16:9 stage) so wide phones put them in the side bars.
+   Sized in vh: a phone held sideways is 320–430 px tall. */
 .touch {
-  position: absolute;
+  --s: 0.9;
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  position: fixed;
   inset: 0;
   pointer-events: none;
+  font-family: 'Press Start 2P', ui-monospace, monospace;
+  z-index: 2;
+}
+
+.touch[hidden] {
+  display: none;
+}
+
+.touch[data-size='small'] {
+  --s: 0.75;
+}
+
+.touch[data-size='large'] {
+  --s: 1.1;
 }
 
 .touch-stick-zone {
@@ -629,18 +649,18 @@ h2.p2 {
   left: 0;
   bottom: 0;
   width: 45%;
-  height: 70%;
+  height: 78%;
   pointer-events: auto;
 }
 
 .touch-base {
   position: absolute;
-  left: 22%;
-  top: 60%;
-  width: calc(var(--u) * 44);
-  height: calc(var(--u) * 44);
-  margin: calc(var(--u) * -22) 0 0 calc(var(--u) * -22);
-  border: calc(var(--u) * 1) solid rgb(255 255 255 / 25%);
+  left: calc(var(--safe-l) + 20vh);
+  top: 62%;
+  width: calc(30vh * var(--s));
+  height: calc(30vh * var(--s));
+  transform: translate(-50%, -50%);
+  border: 2px solid rgb(255 255 255 / 25%);
   border-radius: 50%;
   opacity: 0.5;
 }
@@ -653,20 +673,50 @@ h2.p2 {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(var(--u) * 18);
-  height: calc(var(--u) * 18);
-  margin: calc(var(--u) * -9) 0 0 calc(var(--u) * -9);
+  width: 40%;
+  height: 40%;
+  margin: -20% 0 0 -20%;
   border-radius: 50%;
   background: rgb(255 255 255 / 35%);
+}
+
+/* The button cluster is laid out for the right hand; left-handed mirrors it. */
+.touch-buttons {
+  position: absolute;
+  right: var(--safe-r);
+  bottom: var(--safe-b);
+  width: calc(62vh * var(--s));
+  height: calc(80vh * var(--s));
+}
+
+.touch.lefty .touch-stick-zone {
+  left: auto;
+  right: 0;
+}
+
+.touch.lefty .touch-base {
+  left: calc(100% - var(--safe-r) - 20vh);
+}
+
+.touch.lefty .touch-buttons {
+  right: auto;
+  left: var(--safe-l);
+  transform: scaleX(-1);
+}
+
+.touch.lefty .touch-btn span {
+  display: inline-block;
+  transform: scaleX(-1);
 }
 
 .touch-btn {
   position: absolute;
   pointer-events: auto;
   border-radius: 50%;
-  border: calc(var(--u) * 1) solid rgb(255 255 255 / 30%);
+  border: 2px solid rgb(255 255 255 / 30%);
   background: rgb(24 20 37 / 45%);
-  font-size: calc(var(--u) * 5);
+  font-size: calc(3.4vh * var(--s));
+  touch-action: none;
 }
 
 .touch-btn.pressed {
@@ -674,42 +724,62 @@ h2.p2 {
 }
 
 .touch-hit {
-  right: calc(var(--u) * 10);
-  bottom: calc(var(--u) * 20);
-  width: calc(var(--u) * 46);
-  height: calc(var(--u) * 46);
+  right: 4%;
+  bottom: 8%;
+  width: 44%;
+  height: calc(27vh * var(--s));
+}
+
+.touch-jump {
+  right: 50%;
+  bottom: 3%;
+  width: 30%;
+  height: calc(18.5vh * var(--s));
 }
 
 .touch-fire {
-  right: calc(var(--u) * 14);
-  bottom: calc(var(--u) * 72);
-  width: calc(var(--u) * 30);
-  height: calc(var(--u) * 30);
+  right: 8%;
+  bottom: 50%;
+  width: 30%;
+  height: calc(18.5vh * var(--s));
   background: rgb(228 59 68 / 35%);
 }
 
 .touch-weapon,
 .touch-fuse {
-  width: calc(var(--u) * 24);
-  height: calc(var(--u) * 24);
-  font-size: calc(var(--u) * 4);
+  width: 24%;
+  height: calc(15vh * var(--s));
+  font-size: calc(2.8vh * var(--s));
 }
 
 .touch-weapon {
-  right: calc(var(--u) * 52);
-  bottom: calc(var(--u) * 58);
+  right: 42%;
+  bottom: 44%;
 }
 
 .touch-fuse {
-  right: calc(var(--u) * 80);
-  bottom: calc(var(--u) * 50);
+  right: 68%;
+  bottom: 30%;
 }
 
-.touch-jump {
-  right: calc(var(--u) * 62);
-  bottom: calc(var(--u) * 10);
-  width: calc(var(--u) * 32);
-  height: calc(var(--u) * 32);
+/* Bigger tap targets on touch screens. */
+@media (pointer: coarse) {
+  .chip {
+    padding: calc(var(--u) * 3) calc(var(--u) * 4);
+  }
+
+  .big {
+    padding: calc(var(--u) * 4) calc(var(--u) * 6);
+  }
+
+  .link {
+    padding: calc(var(--u) * 2) 0;
+  }
+
+  .pause-btn {
+    width: calc(var(--u) * 26);
+    height: calc(var(--u) * 20);
+  }
 }
 
 .rotate {

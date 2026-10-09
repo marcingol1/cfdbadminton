@@ -72,6 +72,8 @@ export function keyHints(state: MatchState, id: PlayerId, layout: KeyLayout, key
     return [key(k.move, 'DODGE'), key(k.jump, 'JUMP')].join('');
   }
   if (rv) return key(k.move, 'MOVE');
+  // On a touch screen the buttons are labeled already; only Revenge Turns need explaining.
+  if (layout === 'touch') return '';
   const parts = [key(k.move, 'MOVE'), key(k.jump, 'JUMP'), key(k.swing, 'SWING')];
   if (weapons) {
     parts.push(key(k.weapon, 'WEAPON'));

@@ -10,7 +10,8 @@ const TABS: [SettingsTab, string][] = [
   ['controls', 'CONTROLS'],
 ];
 
-const SETS: [BindingSet, string][] = [
+const SETS: [BindingSet | 'touch', string][] = [
+  ['touch', 'TOUCH'],
   ['solo', 'SOLO'],
   ['p1', '2P LEFT'],
   ['p2', '2P RIGHT'],
@@ -28,7 +29,7 @@ const slider = (name: string, value: number) =>
 /** The settings screen, shown from the main menu or the pause menu. */
 export class SettingsPanel {
   private tab: SettingsTab = 'general';
-  private set: BindingSet = 'solo';
+  private set: BindingSet | 'touch';
   private capturing: KeyAction | null = null;
   private container: HTMLElement | null = null;
   private readonly onKey = (e: KeyboardEvent) => this.capture(e);
@@ -37,7 +38,11 @@ export class SettingsPanel {
     private readonly settings: UiSettings,
     private readonly changed: () => void,
     private readonly back: () => void,
-  ) {}
+    /** Touch screens get the touch layout options first. */
+    private readonly touch: boolean,
+  ) {
+    this.set = touch ? 'touch' : 'solo';
+  }
 
   render(container: HTMLElement): void {
     this.container = container;
@@ -51,6 +56,7 @@ export class SettingsPanel {
         ${row('SCREEN SHAKE', opt('shake', 'full', 'FULL', s.shake === 'full') + opt('shake', 'reduced', 'REDUCED', s.shake === 'reduced') + opt('shake', 'off', 'OFF', s.shake === 'off'))}
         ${row('FLASHES', opt('flashes', 'on', 'FULL', s.flashes) + opt('flashes', 'off', 'SOFT', !s.flashes))}
         ${row('FPS COUNTER', opt('fps', 'on', 'ON', s.showFps) + opt('fps', 'off', 'OFF', !s.showFps), 'F3')}
+        ${row('DETAIL', opt('detail', 'high', 'HIGH', s.detail === 'high') + opt('detail', 'low', 'LOW', s.detail === 'low'), 'low: no crowd, fewer particles')}
       </div>`;
     } else if (this.tab === 'access') {
       body = `<div class="settings-grid two">
@@ -61,9 +67,17 @@ export class SettingsPanel {
         ${row('SCREEN SHAKE', opt('shake', 'full', 'FULL', s.shake === 'full') + opt('shake', 'reduced', 'REDUCED', s.shake === 'reduced') + opt('shake', 'off', 'OFF', s.shake === 'off'))}
         ${row('FLASHES', opt('flashes', 'on', 'FULL', s.flashes) + opt('flashes', 'off', 'SOFT', !s.flashes))}
       </div>`;
+    } else if (this.set === 'touch') {
+      body = `<div class="chips">${this.setChips()}</div>
+        <div class="settings-grid two">
+        ${row('LAYOUT', opt('lefty', 'off', 'STICK LEFT', !s.touchLefty) + opt('lefty', 'on', 'STICK RIGHT', s.touchLefty))}
+        ${row('BUTTON SIZE', (['small', 'medium', 'large'] as const).map((v) => opt('tsize', v, v.toUpperCase(), s.touchSize === v)).join(''))}
+        ${row('VIBRATION', opt('haptics', 'on', 'ON', s.haptics) + opt('haptics', 'off', 'OFF', !s.haptics))}
+        </div>`;
     } else {
-      const keys = resolveKeys(this.set, s.keys);
-      body = `<div class="chips">${SETS.map(([v, l]) => opt('set', v, l, this.set === v)).join('')}</div>
+      const set = this.set;
+      const keys = resolveKeys(set, s.keys);
+      body = `<div class="chips">${this.setChips()}</div>
         <div class="settings-grid two keymap">
         ${KEY_ACTIONS.map(({ action, label }) => {
           const text =
@@ -71,7 +85,7 @@ export class SettingsPanel {
           return `<span class="label">${label}</span><button class="chip key${this.capturing === action ? ' on' : ''}" data-sopt="bind" data-value="${action}">${text}</button>`;
         }).join('')}
         </div>
-        <div class="chips"><button class="chip" data-sopt="reset" data-value="${this.set}">RESET ${SETS.find(([v]) => v === this.set)![1]} KEYS</button><span class="small-note">Esc cancels · gamepads use fixed buttons</span></div>`;
+        <div class="chips"><button class="chip" data-sopt="reset" data-value="${set}">RESET ${SETS.find(([v]) => v === set)![1]} KEYS</button><span class="small-note">Esc cancels · gamepads use fixed buttons</span></div>`;
     }
     container.innerHTML = `<div class="settings">
       <h2>SETTINGS</h2>
@@ -95,6 +109,12 @@ export class SettingsPanel {
     );
   }
 
+  private setChips(): string {
+    return SETS.filter(([v]) => v !== 'touch' || this.touch)
+      .map(([v, l]) => opt('set', v, l, this.set === v))
+      .join('');
+  }
+
   /** Stops waiting for a key (leaving the screen). */
   close(): void {
     if (this.capturing) window.removeEventListener('keydown', this.onKey, true);
@@ -110,7 +130,19 @@ export class SettingsPanel {
         break;
       case 'set':
         this.close();
-        this.set = value as BindingSet;
+        this.set = value as BindingSet | 'touch';
+        break;
+      case 'lefty':
+        s.touchLefty = value === 'on';
+        break;
+      case 'tsize':
+        s.touchSize = value as UiSettings['touchSize'];
+        break;
+      case 'haptics':
+        s.haptics = value === 'on';
+        break;
+      case 'detail':
+        s.detail = value as UiSettings['detail'];
         break;
       case 'back':
         this.close();
@@ -158,7 +190,7 @@ export class SettingsPanel {
     e.preventDefault();
     e.stopImmediatePropagation();
     if (e.code !== 'Escape' && e.code !== 'F3' && e.code !== 'Backquote')
-      rebind(this.settings.keys, this.set, action, e.code);
+      if (this.set !== 'touch') rebind(this.settings.keys, this.set, action, e.code);
     this.close();
     this.changed();
     if (this.container) this.render(this.container);

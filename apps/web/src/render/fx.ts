@@ -11,6 +11,8 @@ export interface FxSettings {
   shake: number;
   /** False softens flashes (no white screen flash, dimmer explosion cores). */
   flashes: boolean;
+  /** Low detail: fewer particles and smoke puffs (slow phones). */
+  low: boolean;
 }
 
 interface Particle {
@@ -95,6 +97,7 @@ export class Effects {
     speed: number,
     opts: { upward?: boolean; gravity?: number; life?: number; size?: number } = {},
   ): void {
+    if (this.settings().low) n = Math.ceil(n / 2);
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
       const v = speed * rand(0.4, 1);
@@ -115,6 +118,7 @@ export class Effects {
 
   /** Kicked-up floor dust; dir pushes it sideways (-1 left, 1 right, 0 both). */
   dust(x: number, y: number, n: number, dir = 0, strength = 1): void {
+    if (this.settings().low) n = Math.floor(n / 2);
     for (let i = 0; i < n; i++) {
       const side = dir === 0 ? (i % 2 ? 1 : -1) : dir;
       this.particles.push({
@@ -133,6 +137,7 @@ export class Effects {
   }
 
   smoke(x: number, y: number, r0: number, r1: number, max: number, color: number = C.gray): void {
+    if (this.settings().low && this.smokes.length > 4) return;
     this.smokes.push({ x, y, r0, r1, vy: -rand(8, 18), life: 0, max, color });
   }
 
@@ -141,6 +146,7 @@ export class Effects {
   }
 
   streak(x0: number, y0: number, x1: number, y1: number, color: number, max = 140): void {
+    if (this.settings().low) return;
     this.streaks.push({ x0, y0, x1, y1, life: 0, max, color });
   }
 
@@ -149,7 +155,8 @@ export class Effects {
     this.flashes.push({ x: X, y: Y, r: Math.round(r * 0.8), life: 0 });
     this.ring(X, Y, r * 1.3, 260, C.paleYellow);
     const fire = [C.paleYellow, C.yellow, C.orange, C.brightRed];
-    for (let i = 0; i < 30; i++) {
+    const low = this.settings().low;
+    for (let i = 0; i < (low ? 14 : 30); i++) {
       const a = Math.random() * Math.PI * 2;
       const v = r * rand(2, 5);
       this.particles.push({
@@ -166,7 +173,7 @@ export class Effects {
       });
     }
     // Rolling smoke puffs that rise and fade.
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < (low ? 3 : 6); i++) {
       this.smoke(
         X + rand(-0.5, 0.5) * r,
         Y + rand(-0.3, 0.2) * r,

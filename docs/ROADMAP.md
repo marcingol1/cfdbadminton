@@ -104,10 +104,21 @@ Sizes are relative: S < M < L.
 client. Desync detection. Then a quick-match queue. Later: accounts, Glicko-2 rating, and
 server-verified replays.
 
-### M6 — Mobile store builds (M)
+### M6 — Mobile store builds (M) — 🟡 built, store release needs accounts
 
-Capacitor iOS and Android projects, haptics, performance profiling on low-end devices,
-store listings, age rating, privacy policy, TestFlight and Play internal testing.
+- Capacitor 8 iOS (Swift Package Manager) and Android projects in `apps/web/ios` and
+  `apps/web/android`, landscape only and full screen.
+- Phone UX: touch controls on the whole screen (beside the game on wide phones),
+  notch-safe, hidden over menus; left-handed layout and three button sizes; bigger tap
+  targets; haptics; Android back button; pause in the background; screen kept awake in
+  matches; a low-detail mode for slow phones.
+- Pixel-art app icon and splash screen drawn in code (`apps/web/scripts/icons.ts`).
+- CI (`mobile.yml`): a debug APK for every pull request, an iOS simulator build, and a
+  manual signed release bundle (`.aab`) for Google Play.
+- Privacy policy page (`/privacy.html`) and the release checklist in `docs/MOBILE.md`.
+- **Still to do (needs your accounts):** Google Play Console and Apple Developer
+  accounts, the upload key, store listings and screenshots, a closed test on Play,
+  TestFlight, review.
 
 ### Later backlog
 

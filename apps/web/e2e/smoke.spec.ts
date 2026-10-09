@@ -94,3 +94,30 @@ test('challenges: the list shows every challenge and starts its fixed setup', as
   expect(await page.evaluate(`${state}.config.pointsToWin`)).toBe(7);
   expect(errors).toEqual([]);
 });
+
+test.describe('on a phone', () => {
+  test.use({
+    viewport: { width: 844, height: 390 },
+    hasTouch: true,
+    isMobile: true,
+    deviceScaleFactor: 2,
+  });
+
+  test('touch controls show in a match, hide over menus, and HIT serves', async ({ page }) => {
+    const errors = await open(page);
+    await page.tap('text=PLAY VS BOT');
+    await expect(page.locator('.touch')).toBeVisible();
+    // On a wide phone the buttons sit beside the 16:9 game, not over the court.
+    const hit = await page.locator('.touch-hit').boundingBox();
+    const stage = await page.locator('#stage').boundingBox();
+    expect(hit!.x + hit!.width).toBeGreaterThan(stage!.x + stage!.width);
+    await page.waitForFunction(`${state}.phase === 'serve'`);
+    if (await page.evaluate(`${state}.server === 0`)) {
+      await page.tap('.touch-hit');
+      await page.waitForFunction(`${state}.phase === 'rally'`, undefined, { timeout: 5_000 });
+    }
+    await page.tap('.pause-btn');
+    await expect(page.locator('.touch')).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+});

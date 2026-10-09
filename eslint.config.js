@@ -33,7 +33,15 @@ const nonDeterministicMath = [
 }));
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/coverage/**',
+      'apps/web/android/**',
+      'apps/web/ios/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

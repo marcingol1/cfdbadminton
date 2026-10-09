@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Deadminton</string>
+    <string name="title_activity_main">Deadminton</string>
+    <string name="package_name">com.marcingol.deadminton</string>
+    <string name="custom_url_scheme">com.marcingol.deadminton</string>
+</resources>

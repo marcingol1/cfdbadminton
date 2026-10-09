@@ -55,6 +55,13 @@ export interface UiSettings {
   gameSpeed: number;
   /** Remapped keys per keyboard layout. */
   keys: KeyOverrides;
+  /** Touch controls: left-handed swaps the stick and the buttons. */
+  touchLefty: boolean;
+  touchSize: 'small' | 'medium' | 'large';
+  /** Vibration on hits, explosions and KOs (phones). */
+  haptics: boolean;
+  /** Low detail hides the crowd and thins out particles (slow phones). */
+  detail: 'high' | 'low';
 }
 
 export interface UiActions {
@@ -180,6 +187,8 @@ export class Ui {
     private readonly root: HTMLElement,
     readonly settings: UiSettings,
     private readonly actions: UiActions,
+    /** A touch screen: menus hide keyboard-only notes, settings lead with touch options. */
+    private readonly touch = false,
   ) {
     root.insertAdjacentHTML(
       'beforeend',
@@ -206,6 +215,7 @@ export class Ui {
         actions.settingsChanged();
       },
       () => this.show(this.settingsFromPause ? 'pause' : 'menu', this.lastSession),
+      touch,
     );
     root.addEventListener('click', (e) => this.onClick(e));
     root.querySelector('.pause-btn')!.addEventListener('click', () => this.actions.pause());
@@ -254,6 +264,35 @@ export class Ui {
     if (screen === 'done') this.renderDone();
     if (spectating && session) this.renderWatch(session);
     this.hudKey = '';
+  }
+
+  /** Android back button: one step back. False on the main menu (the app then exits). */
+  back(): boolean {
+    switch (this.screen) {
+      case 'menu':
+        return false;
+      case 'settings':
+        this.show(this.settingsFromPause ? 'pause' : 'menu', this.lastSession);
+        return true;
+      case 'help':
+      case 'replays':
+      case 'challenges':
+        this.show('menu');
+        return true;
+      case 'pause':
+        this.actions.resume();
+        return true;
+      case 'hud': {
+        const mode = this.lastSession?.mode;
+        if (mode === 'watch' || mode === 'replay') this.actions.menu();
+        else this.actions.pause();
+        return true;
+      }
+      case 'over':
+      case 'done':
+        this.actions.menu();
+        return true;
+    }
   }
 
   toggleTuning(state: MatchState | null): void {
@@ -357,7 +396,7 @@ export class Ui {
         <span></span>
         <div class="chips">${STYLES.map((p) => chip('style', p, p.toUpperCase(), s.style === p)).join('')}</div>
         <button class="big" data-action="playLocal">LOCAL 2 PLAYERS</button>
-        <div class="chips small-note">keyboard halves or 2 gamepads</div>
+        <div class="chips small-note">${this.touch ? 'needs 2 gamepads' : 'keyboard halves or 2 gamepads'}</div>
         <button class="big" data-action="watch">WATCH BOTS</button>
         <div class="chips">${DIFFS.map((d) => chip('botA', d, d[0]!.toUpperCase(), s.botA === d)).join('')}<span class="vs">vs</span>${DIFFS.map((d) => chip('botB', d, d[0]!.toUpperCase(), s.botB === d)).join('')}</div>
         <span></span>

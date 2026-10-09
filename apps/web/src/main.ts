@@ -22,6 +22,8 @@ import { setColorMode } from './render/palette';
 import { MatchScene } from './render/scene';
 import type { SceneHost } from './render/scene';
 import { VIEW_H, VIEW_W } from './render/view';
+import { haptic } from './platform/haptics';
+import { initNative, isNative, keepAwake } from './platform/native';
 import { FpsMeter } from './ui/fps';
 import type { KeyLayout } from './ui/keyhints';
 import { Ui, setPath } from './ui/ui';
@@ -45,7 +47,8 @@ function loadSettings(): UiSettings {
     revenge: false,
     assistMarker: true,
     keyHints: true,
-    showFps: true,
+    // On by default while developing in the browser; off in the store apps.
+    showFps: !isNative(),
     muted: false,
     shake: 'full',
     flashes: true,
@@ -54,6 +57,10 @@ function loadSettings(): UiSettings {
     colors: 'standard',
     gameSpeed: 1,
     keys: {},
+    touchLefty: false,
+    touchSize: 'medium',
+    haptics: true,
+    detail: 'high',
   };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
@@ -94,71 +101,78 @@ class App implements SceneHost {
   private tutorial: Tutorial | null = null;
 
   constructor(private readonly stage: HTMLElement) {
-    this.ui = new Ui(stage, this.settings, {
-      playBot: () => {
-        this.challenge = null;
-        this.start('vsBot');
+    this.ui = new Ui(
+      stage,
+      this.settings,
+      {
+        playBot: () => {
+          this.challenge = null;
+          this.start('vsBot');
+        },
+        watchReplay: () => {
+          const replay = this.session?.replay ?? this.loadLastReplay();
+          if (replay) this.startReplay(replay);
+        },
+        saveReplay: () => {
+          const replay = this.session?.replay ?? this.loadLastReplay();
+          if (replay) this.downloadReplay(replay);
+        },
+        loadReplayFile: (file) => {
+          file
+            .text()
+            .then((text) => this.startReplay(parseReplay(JSON.parse(text))))
+            .catch((err: unknown) =>
+              this.ui.replayError(err instanceof Error ? err.message : 'Could not read that file.'),
+            );
+        },
+        hasLastReplay: () => this.loadLastReplay() !== null,
+        playLocal: () => this.start('local2p'),
+        tutorial: () => this.start('tutorial'),
+        challenge: (id) => {
+          this.challenge = CHALLENGES.find((c) => c.id === id) ?? null;
+          this.start('vsBot');
+        },
+        completedChallenges: () => loadCompleted(),
+        watch: () => this.start('watch'),
+        resume: () => this.resume(),
+        pause: () => this.pause(),
+        restart: () => this.start(this.lastMode),
+        menu: () => this.toMenu(),
+        setSpeed: (v) => {
+          if (this.session) {
+            this.session.speed = v;
+            this.ui.renderWatch(this.session);
+          }
+        },
+        togglePauseWatch: () => {
+          if (this.session) {
+            this.session.paused = !this.session.paused;
+            this.ui.renderWatch(this.session);
+          }
+        },
+        stepWatch: () => {
+          if (this.session) {
+            this.session.paused = true;
+            this.pendingEvents.push(...this.session.tick());
+            this.ui.renderWatch(this.session);
+          }
+        },
+        toggleIntent: () => (this.showIntent = !this.showIntent),
+        settingsChanged: () => this.saveSettings(),
+        tuningChanged: (path, value) => {
+          setPath(this.tuning, path, value);
+          if (this.session) {
+            setPath(this.session.state.config.tuning, path, value);
+            this.session.tuningEdited = true;
+          }
+        },
       },
-      watchReplay: () => {
-        const replay = this.session?.replay ?? this.loadLastReplay();
-        if (replay) this.startReplay(replay);
-      },
-      saveReplay: () => {
-        const replay = this.session?.replay ?? this.loadLastReplay();
-        if (replay) this.downloadReplay(replay);
-      },
-      loadReplayFile: (file) => {
-        file
-          .text()
-          .then((text) => this.startReplay(parseReplay(JSON.parse(text))))
-          .catch((err: unknown) =>
-            this.ui.replayError(err instanceof Error ? err.message : 'Could not read that file.'),
-          );
-      },
-      hasLastReplay: () => this.loadLastReplay() !== null,
-      playLocal: () => this.start('local2p'),
-      tutorial: () => this.start('tutorial'),
-      challenge: (id) => {
-        this.challenge = CHALLENGES.find((c) => c.id === id) ?? null;
-        this.start('vsBot');
-      },
-      completedChallenges: () => loadCompleted(),
-      watch: () => this.start('watch'),
-      resume: () => this.resume(),
-      pause: () => this.pause(),
-      restart: () => this.start(this.lastMode),
-      menu: () => this.toMenu(),
-      setSpeed: (v) => {
-        if (this.session) {
-          this.session.speed = v;
-          this.ui.renderWatch(this.session);
-        }
-      },
-      togglePauseWatch: () => {
-        if (this.session) {
-          this.session.paused = !this.session.paused;
-          this.ui.renderWatch(this.session);
-        }
-      },
-      stepWatch: () => {
-        if (this.session) {
-          this.session.paused = true;
-          this.pendingEvents.push(...this.session.tick());
-          this.ui.renderWatch(this.session);
-        }
-      },
-      toggleIntent: () => (this.showIntent = !this.showIntent),
-      settingsChanged: () => this.saveSettings(),
-      tuningChanged: (path, value) => {
-        setPath(this.tuning, path, value);
-        if (this.session) {
-          setPath(this.session.state.config.tuning, path, value);
-          this.session.tuningEdited = true;
-        }
-      },
-    });
-    this.touch = isTouchDevice() ? new TouchDevice(stage) : null;
+      isTouchDevice(),
+    );
+    // Fixed to the whole screen, so on wide phones the controls sit beside the game.
+    this.touch = isTouchDevice() ? new TouchDevice(document.body) : null;
     this.touch?.setVisible(false);
+    this.configureTouch();
     this.mouseHit = new KeyboardDevice({
       left: [],
       right: [],
@@ -201,11 +215,19 @@ class App implements SceneHost {
     });
     document.addEventListener('visibilitychange', () => document.hidden && this.pause());
     this.toMenu();
+    void initNative({
+      onBack: () => this.ui.back(),
+      onPause: () => this.pause(),
+    });
   }
 
   get fx(): FxSettings {
     const s = this.settings;
-    return { shake: s.shake === 'full' ? 1 : s.shake === 'reduced' ? 0.4 : 0, flashes: s.flashes };
+    return {
+      shake: s.shake === 'full' ? 1 : s.shake === 'reduced' ? 0.4 : 0,
+      flashes: s.flashes,
+      low: s.detail === 'low',
+    };
   }
 
   get assistMarker(): boolean {
@@ -221,7 +243,17 @@ class App implements SceneHost {
       s.speed = this.settings.gameSpeed;
   }
 
+  private configureTouch(): void {
+    const s = this.settings;
+    this.touch?.configure({
+      leftHanded: s.touchLefty,
+      size: s.touchSize,
+      onPress: () => s.haptics && haptic('tick'),
+    });
+  }
+
   private saveSettings(): void {
+    this.configureTouch();
     setColorMode(this.settings.colors);
     this.applySpeedAssist();
     this.sfx.muted = this.settings.muted;
@@ -272,7 +304,6 @@ class App implements SceneHost {
     this.overMs = 0;
     this.music.play('match');
     this.showIntent = false;
-    this.touch?.setVisible(false);
     this.ui.show('hud', this.session);
   }
 
@@ -366,7 +397,6 @@ class App implements SceneHost {
     this.overMs = 0;
     this.music.play(mode === 'attract' ? 'menu' : 'match');
     this.showIntent = false;
-    this.touch?.setVisible(mode === 'vsBot' || mode === 'tutorial');
     if (mode === 'attract') this.ui.show('menu');
     else this.ui.show('hud', this.session);
   }
@@ -403,10 +433,18 @@ class App implements SceneHost {
 
     const events = [...this.pendingEvents, ...session.advance(deltaMs)];
     this.pendingEvents = [];
+    // Touch controls only while a touch player is actually playing (not over menus).
+    const humanTouch = session.mode === 'vsBot' || session.mode === 'tutorial';
+    this.touch?.setVisible(humanTouch && this.ui.current === 'hud');
+    keepAwake(
+      (humanTouch || session.mode === 'local2p') &&
+        (this.ui.current === 'hud' || this.ui.current === 'pause'),
+    );
     const audible = session.mode !== 'attract';
     if (audible) this.music.intensity = this.intensity(session);
     for (const e of events) {
       if (audible) this.playSound(e, session);
+      if (humanTouch && this.settings.haptics) this.vibrate(e, session);
       if (audible && e.type === 'matchOver') this.music.play(null);
       if (e.type === 'matchOver' && session.mode === 'attract') {
         // Attract mode loops forever behind the menu.
@@ -421,7 +459,6 @@ class App implements SceneHost {
           this.sfx.play('win');
           session.paused = true;
           this.ui.show('done', session);
-          this.touch?.setVisible(false);
         } else {
           this.ui.renderTutorial(this.tutorial.html(resolveKeys('solo', this.settings.keys)));
         }
@@ -444,7 +481,6 @@ class App implements SceneHost {
           this.ui.challengeResult = { title: ch.title, goal: ch.goal, passed };
         }
         this.ui.show('over', session);
-        this.touch?.setVisible(false);
       }
     }
     return events;
@@ -472,6 +508,25 @@ class App implements SceneHost {
         return [pad(0) ? 'gamepad' : 'p1', pad(1) ? 'gamepad' : 'p2'];
       default:
         return [null, null];
+    }
+  }
+
+  /** Vibration for what happens to you (player 0) in a game you play. */
+  private vibrate(e: SimEvent, session: MatchSession): void {
+    switch (e.type) {
+      case 'hit':
+        if (e.player === 0) haptic(e.shot === 'smash' ? 'medium' : 'light');
+        return;
+      case 'bodyHit':
+        if (e.player === 0) haptic('heavy');
+        return;
+      case 'explosion': {
+        const me = session.state.players[0];
+        if (Math.hypot(e.x - me.x, e.y - me.y) < 4) haptic('medium');
+        return;
+      }
+      case 'ko':
+        return haptic('ko');
     }
   }
 

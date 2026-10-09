@@ -11,6 +11,7 @@ to iOS and Android later through Capacitor.
 - 🛠️ [Technical plan](docs/TECHNICAL_PLAN.md)
 - 🗺️ [Roadmap and decisions](docs/ROADMAP.md)
 - 🤖 [How the bots and seeds work](docs/AI_AND_SEEDS.md)
+- 📱 [iOS and Android apps](docs/MOBILE.md)
 
 ## Quick start
 
@@ -48,12 +49,13 @@ softer flashes, a colorblind-safe palette and a game speed assist (100%, 85%, 70
 
 ## Repository layout
 
-| Path             | What                                                            |
-| ---------------- | --------------------------------------------------------------- |
-| `packages/sim`   | Deterministic, headless game simulation (rules, physics, shots) |
-| `packages/bots`  | AI players that drive the sim through the same inputs as humans |
-| `apps/web`       | Vite + Phaser browser client (rendering, input, audio, menus)   |
-| `tools/simbatch` | Headless bot-vs-bot batch runner for balancing                  |
+| Path                               | What                                                            |
+| ---------------------------------- | --------------------------------------------------------------- |
+| `packages/sim`                     | Deterministic, headless game simulation (rules, physics, shots) |
+| `packages/bots`                    | AI players that drive the sim through the same inputs as humans |
+| `apps/web`                         | Vite + Phaser browser client (rendering, input, audio, menus)   |
+| `apps/web/android`, `apps/web/ios` | Capacitor projects for the phone apps                           |
+| `tools/simbatch`                   | Headless bot-vs-bot batch runner for balancing                  |
 
 ## Scripts
 
@@ -63,6 +65,8 @@ npm run check         # lint + format + typecheck + tests (what CI runs)
 npm run simbatch -- --a hard:berserker --b medium:purist --n 200   # balance report
 npm run e2e           # browser smoke tests (Playwright; builds first)
 npm run build         # static web build in apps/web/dist
+npm run android -w @deadminton/web   # phone app: build, sync, open Android Studio
+npm run ios -w @deadminton/web       # phone app: build, sync, open Xcode
 ```
 
 ## Deployment
@@ -71,3 +75,7 @@ The web build deploys to **Vercel** through its GitHub integration: pushes to `m
 to production, and every pull request gets a preview URL. `vercel.json` holds the build
 settings (install `npm ci`, build `npm run build`, output `apps/web/dist`), so the Vercel
 project needs no extra configuration.
+
+The phone apps are built by the **Mobile** GitHub Actions workflow: every pull request
+produces a debug APK you can install on an Android phone, and an iOS simulator build. See
+[docs/MOBILE.md](docs/MOBILE.md) for running them yourself and releasing to the stores.

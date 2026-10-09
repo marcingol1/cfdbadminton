@@ -263,7 +263,7 @@ export class MatchScene extends Phaser.Scene {
       this.crowd.cheer(this.moodWinner, 1);
     }
 
-    if (s.config.arena === 'hall') this.crowd.draw(p, dt, this.time0);
+    if (s.config.arena === 'hall' && !this.host.fx.low) this.crowd.draw(p, dt, this.time0);
     drawTerrain(p, s);
     this.fx.drawBack(p);
     for (const m of s.mines) drawMine(p, m, this.time0);
