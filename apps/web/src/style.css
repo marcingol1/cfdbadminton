@@ -8,7 +8,18 @@
   --p1: #e43b44;
   --p2: #2ce8f5;
   --accent: #feae34;
+  --hp-ok: #63c74d;
+  --hp-warn: #feae34;
+  --hp-low: #e43b44;
   color-scheme: dark;
+}
+
+/* Colorblind-safe team and HP colors (Settings → Accessibility). */
+:root.cb {
+  --p1: #f77622;
+  --hp-ok: #0099db;
+  --hp-warn: #fee761;
+  --hp-low: #ff0044;
 }
 
 * {
@@ -286,15 +297,15 @@ h2.p2 {
 }
 
 .hp i.ok {
-  background: #63c74d;
+  background: var(--hp-ok);
 }
 
 .hp i.warn {
-  background: #feae34;
+  background: var(--hp-warn);
 }
 
 .hp i.low {
-  background: #e43b44;
+  background: var(--hp-low);
 }
 
 .hp b {
@@ -758,4 +769,131 @@ h2.p2 {
 .big[disabled] {
   opacity: 0.4;
   cursor: default;
+}
+
+/* Settings screen (menu and pause). */
+.settings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 5);
+}
+
+.settings h2 {
+  margin: 0;
+}
+
+.settings-grid.two {
+  grid-template-columns: auto auto;
+  gap: calc(var(--u) * 3) calc(var(--u) * 6);
+  min-height: calc(var(--u) * 100);
+  align-content: start;
+}
+
+.settings-grid.keymap {
+  grid-template-columns: auto auto auto auto;
+  gap: calc(var(--u) * 2) calc(var(--u) * 4);
+  min-height: 0;
+}
+
+.settings .label {
+  justify-self: end;
+}
+
+.settings .chip.key {
+  min-width: calc(var(--u) * 46);
+}
+
+.settings input[type='range'] {
+  width: calc(var(--u) * 90);
+  accent-color: var(--accent);
+}
+
+.settings output {
+  min-width: calc(var(--u) * 20);
+  color: var(--text);
+  font-size: calc(var(--u) * 5);
+}
+
+.tabs .chip {
+  font-size: calc(var(--u) * 6);
+}
+
+/* Tutorial checklist (top center, under the serve hint). */
+.tutorial {
+  position: absolute;
+  top: calc(var(--u) * 80);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(var(--u) * 250);
+  padding: calc(var(--u) * 3) calc(var(--u) * 5);
+  background: rgb(24 20 37 / 88%);
+  border: calc(var(--u) * 1) solid var(--accent);
+  box-shadow: 0 calc(var(--u) * 2) 0 var(--ink);
+  pointer-events: none;
+}
+
+.tutorial .step {
+  display: flex;
+  justify-content: space-between;
+  color: var(--accent);
+  font-size: calc(var(--u) * 5);
+}
+
+.tutorial .dots {
+  letter-spacing: calc(var(--u) * 1);
+}
+
+.tutorial p {
+  margin: calc(var(--u) * 2) 0 0;
+  color: var(--text);
+  font-size: calc(var(--u) * 5);
+  line-height: 1.5;
+}
+
+/* Challenges list. */
+.challenges {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 2);
+  width: calc(var(--u) * 340);
+}
+
+.challenge {
+  display: grid;
+  grid-template-columns: calc(var(--u) * 10) calc(var(--u) * 90) 1fr;
+  align-items: center;
+  padding: calc(var(--u) * 2) calc(var(--u) * 4);
+  background: var(--panel);
+  border: calc(var(--u) * 1) solid var(--line);
+  text-align: left;
+  font-size: calc(var(--u) * 5);
+}
+
+.challenge:hover,
+.challenge:focus-visible {
+  border-color: var(--accent);
+}
+
+.challenge b {
+  color: var(--muted);
+}
+
+.challenge.done b,
+.challenge.done .name {
+  color: var(--hp-ok);
+}
+
+.challenge .goal {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.chips.links {
+  gap: calc(var(--u) * 8);
+}
+
+h2 .count {
+  color: var(--accent);
+  font-size: 0.6em;
 }

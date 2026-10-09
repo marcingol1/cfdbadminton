@@ -18,7 +18,7 @@ export class Painter {
   }
 
   /** Bresenham line, `size` px thick. */
-  line(x0: number, y0: number, x1: number, y1: number, color: number, size = 1): void {
+  line(x0: number, y0: number, x1: number, y1: number, color: number, size = 1, alpha = 1): void {
     x0 = Math.round(x0);
     y0 = Math.round(y0);
     x1 = Math.round(x1);
@@ -28,7 +28,7 @@ export class Painter {
     const stepX = x0 < x1 ? 1 : -1;
     const stepY = y0 < y1 ? 1 : -1;
     let err = dx + dy;
-    this.g.fillStyle(color, 1);
+    this.g.fillStyle(color, alpha);
     for (;;) {
       this.g.fillRect(x0, y0, size, size);
       if (x0 === x1 && y0 === y1) break;

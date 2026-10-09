@@ -58,6 +58,94 @@ export const P2_SPLIT_KEYS: KeyMap = {
   fuse: ['Backslash'],
 };
 
+/** The three remappable keyboard layouts. */
+export type BindingSet = 'solo' | 'p1' | 'p2';
+export type KeyAction = keyof KeyMap;
+export type KeyOverrides = Partial<Record<BindingSet, Partial<KeyMap>>>;
+
+export const DEFAULT_KEYS: Record<BindingSet, KeyMap> = {
+  solo: SOLO_KEYS,
+  p1: P1_SPLIT_KEYS,
+  p2: P2_SPLIT_KEYS,
+};
+
+export const KEY_ACTIONS: { action: KeyAction; label: string }[] = [
+  { action: 'left', label: 'MOVE LEFT' },
+  { action: 'right', label: 'MOVE RIGHT' },
+  { action: 'up', label: 'UP · CLEAR · AIM' },
+  { action: 'down', label: 'DOWN · DROP · AIM' },
+  { action: 'jump', label: 'JUMP' },
+  { action: 'hit', label: 'SWING / SERVE' },
+  { action: 'fire', label: 'FIRE · THROW' },
+  { action: 'prev', label: 'WEAPON ◀' },
+  { action: 'next', label: 'WEAPON ▶' },
+  { action: 'fuse', label: 'FRAG FUSE' },
+];
+
+/** The default layout with the player's changes applied. */
+export function resolveKeys(set: BindingSet, overrides: KeyOverrides | undefined): KeyMap {
+  return { ...DEFAULT_KEYS[set], ...(overrides?.[set] ?? {}) };
+}
+
+/**
+ * Binds `code` to `action` (replacing its keys). If another action used that key, it gets
+ * this action's old key instead, so no action is ever left without a key.
+ */
+export function rebind(
+  overrides: KeyOverrides,
+  set: BindingSet,
+  action: KeyAction,
+  code: string,
+): void {
+  const map = resolveKeys(set, overrides);
+  const old = map[action];
+  const next: Partial<KeyMap> = { ...(overrides[set] ?? {}), [action]: [code] };
+  for (const { action: other } of KEY_ACTIONS) {
+    if (other === action || !map[other].includes(code)) continue;
+    const rest = map[other].filter((c) => c !== code);
+    next[other] = rest.length ? rest : old.filter((c) => c !== code).slice(0, 1);
+  }
+  overrides[set] = next;
+}
+
+const NAMED: Record<string, string> = {
+  Space: 'SPACE',
+  Enter: 'ENTER',
+  ShiftLeft: 'L-SHIFT',
+  ShiftRight: 'R-SHIFT',
+  ControlLeft: 'L-CTRL',
+  ControlRight: 'R-CTRL',
+  AltLeft: 'L-ALT',
+  AltRight: 'R-ALT',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  Slash: '/',
+  Backslash: '\\',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Semicolon: ';',
+  Quote: "'",
+  Comma: ',',
+  Period: '.',
+  Minus: '-',
+  Equal: '=',
+  Tab: 'TAB',
+  Backspace: 'BKSP',
+  CapsLock: 'CAPS',
+};
+
+/** Short on-screen name for a key code ('KeyA' → 'A', 'ShiftLeft' → 'L-SHIFT'). */
+export function keyLabel(code: string | undefined): string {
+  if (!code) return '—';
+  if (NAMED[code]) return NAMED[code];
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  if (code.startsWith('Numpad')) return `NUM${code.slice(6).toUpperCase()}`;
+  return code.toUpperCase();
+}
+
 const held = new Set<string>();
 /** Keys pressed since they were last sampled, so taps shorter than one tick still count. */
 const tapped = new Set<string>();
@@ -82,8 +170,13 @@ export class KeyboardDevice implements InputDevice {
   /** Extra "fire" source held down, e.g. the right mouse button. */
   externalFire = false;
 
-  constructor(private readonly map: KeyMap) {
+  /** A fixed map, or a getter so remapping in the pause menu applies at once. */
+  constructor(private readonly keys: KeyMap | (() => KeyMap)) {
     listen();
+  }
+
+  private get map(): KeyMap {
+    return typeof this.keys === 'function' ? this.keys() : this.keys;
   }
 
   private down(codes: string[]): boolean {

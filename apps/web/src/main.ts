@@ -4,15 +4,21 @@ import Phaser from 'phaser';
 import type { Difficulty, Personality } from '@deadminton/bots';
 import { DEFAULT_TUNING, parseReplay, replayFrames } from '@deadminton/sim';
 import type { MatchConfig, Replay, SimEvent, Tuning } from '@deadminton/sim';
+import { Music } from './audio/music';
 import { Sfx } from './audio/sfx';
+import { CHALLENGES, loadCompleted, markCompleted } from './game/challenges';
+import type { Challenge } from './game/challenges';
 import { BotController, HumanController, ReplayController } from './game/controllers';
 import type { Controller } from './game/controllers';
 import { MatchSession } from './game/session';
 import type { SessionMode } from './game/session';
+import { TUTORIAL_CONFIG, Tutorial } from './game/tutorial';
 import type { InputDevice } from './input/device';
 import { GamepadDevice } from './input/gamepad';
-import { KeyboardDevice, P1_SPLIT_KEYS, P2_SPLIT_KEYS, SOLO_KEYS } from './input/keyboard';
+import { KeyboardDevice, resolveKeys } from './input/keyboard';
 import { TouchDevice, isTouchDevice } from './input/touch';
+import type { FxSettings } from './render/fx';
+import { setColorMode } from './render/palette';
 import { MatchScene } from './render/scene';
 import type { SceneHost } from './render/scene';
 import { VIEW_H, VIEW_W } from './render/view';
@@ -41,6 +47,13 @@ function loadSettings(): UiSettings {
     keyHints: true,
     showFps: true,
     muted: false,
+    shake: 'full',
+    flashes: true,
+    sfxVolume: 0.8,
+    musicVolume: 0.6,
+    colors: 'standard',
+    gameSpeed: 1,
+    keys: {},
   };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
@@ -63,6 +76,7 @@ class App implements SceneHost {
   showIntent = false;
   private readonly ui: Ui;
   private readonly sfx = new Sfx();
+  private readonly music = new Music(this.sfx);
   private readonly fps: FpsMeter;
   private lastReplay: Replay | null = null;
   /** The replay currently (or last) being watched, for WATCH AGAIN. */
@@ -73,10 +87,18 @@ class App implements SceneHost {
   private readonly mouseHit: KeyboardDevice;
   private lastMode: SessionMode = 'vsBot';
   private startWasDown = false;
+  /** Time since the match ended, before the results overlay appears. */
+  private overMs = 0;
+  /** The challenge being played (vs Bot with a fixed setup), if any. */
+  private challenge: Challenge | null = null;
+  private tutorial: Tutorial | null = null;
 
   constructor(private readonly stage: HTMLElement) {
     this.ui = new Ui(stage, this.settings, {
-      playBot: () => this.start('vsBot'),
+      playBot: () => {
+        this.challenge = null;
+        this.start('vsBot');
+      },
       watchReplay: () => {
         const replay = this.session?.replay ?? this.loadLastReplay();
         if (replay) this.startReplay(replay);
@@ -95,6 +117,12 @@ class App implements SceneHost {
       },
       hasLastReplay: () => this.loadLastReplay() !== null,
       playLocal: () => this.start('local2p'),
+      tutorial: () => this.start('tutorial'),
+      challenge: (id) => {
+        this.challenge = CHALLENGES.find((c) => c.id === id) ?? null;
+        this.start('vsBot');
+      },
+      completedChallenges: () => loadCompleted(),
       watch: () => this.start('watch'),
       resume: () => this.resume(),
       pause: () => this.pause(),
@@ -144,6 +172,9 @@ class App implements SceneHost {
       fuse: [],
     });
     this.sfx.muted = this.settings.muted;
+    this.sfx.setLevels(this.settings.sfxVolume, this.settings.musicVolume);
+    this.sfx.onUnlock = () => this.music.resume();
+    setColorMode(this.settings.colors);
     this.fps = new FpsMeter(stage);
     this.fps.setVisible(this.settings.showFps);
 
@@ -172,14 +203,29 @@ class App implements SceneHost {
     this.toMenu();
   }
 
+  get fx(): FxSettings {
+    const s = this.settings;
+    return { shake: s.shake === 'full' ? 1 : s.shake === 'reduced' ? 0.4 : 0, flashes: s.flashes };
+  }
+
   get assistMarker(): boolean {
     return this.settings.assistMarker;
   }
 
   private pendingEvents: SimEvent[] = [];
 
+  /** The game speed assist slows real time in matches with a human playing. */
+  private applySpeedAssist(): void {
+    const s = this.session;
+    if (s && (s.mode === 'vsBot' || s.mode === 'local2p' || s.mode === 'tutorial'))
+      s.speed = this.settings.gameSpeed;
+  }
+
   private saveSettings(): void {
+    setColorMode(this.settings.colors);
+    this.applySpeedAssist();
     this.sfx.muted = this.settings.muted;
+    this.sfx.setLevels(this.settings.sfxVolume, this.settings.musicVolume);
     this.fps.setVisible(this.settings.showFps);
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
@@ -198,6 +244,9 @@ class App implements SceneHost {
         revengeTurns: true,
         tuning: this.tuning,
       };
+    if (mode === 'tutorial') return { ...TUTORIAL_CONFIG, tuning: this.tuning };
+    if (mode === 'vsBot' && this.challenge)
+      return { bestOf: 1, revengeTurns: false, ...this.challenge.config, tuning: this.tuning };
     const s = this.settings;
     return {
       pointsToWin: s.pointsToWin,
@@ -219,6 +268,9 @@ class App implements SceneHost {
     this.lastMode = 'replay';
     this.playing = replay;
     this.session = new MatchSession('replay', controllers, replay.config, replay.seed, replay);
+    this.ui.challengeResult = null;
+    this.overMs = 0;
+    this.music.play('match');
     this.showIntent = false;
     this.touch?.setVisible(false);
     this.ui.show('hud', this.session);
@@ -263,23 +315,33 @@ class App implements SceneHost {
     let controllers: [Controller, Controller];
     const s = this.settings;
     switch (mode) {
-      case 'vsBot': {
+      case 'vsBot':
+      case 'tutorial': {
         const devices: InputDevice[] = [
-          new KeyboardDevice(SOLO_KEYS),
+          new KeyboardDevice(() => resolveKeys('solo', this.settings.keys)),
           new GamepadDevice(0),
           this.mouseHit,
         ];
         if (this.touch) devices.push(this.touch);
+        const ch = mode === 'vsBot' ? this.challenge : null;
         controllers = [
           new HumanController('YOU', devices),
-          new BotController(1, s.difficulty, seed, s.style),
+          mode === 'tutorial'
+            ? new BotController(1, 'easy', seed, 'purist')
+            : new BotController(1, ch?.bot ?? s.difficulty, seed, ch?.style ?? s.style),
         ];
         break;
       }
       case 'local2p':
         controllers = [
-          new HumanController('P1', [new KeyboardDevice(P1_SPLIT_KEYS), new GamepadDevice(0)]),
-          new HumanController('P2', [new KeyboardDevice(P2_SPLIT_KEYS), new GamepadDevice(1)]),
+          new HumanController('P1', [
+            new KeyboardDevice(() => resolveKeys('p1', this.settings.keys)),
+            new GamepadDevice(0),
+          ]),
+          new HumanController('P2', [
+            new KeyboardDevice(() => resolveKeys('p2', this.settings.keys)),
+            new GamepadDevice(1),
+          ]),
         ];
         break;
       case 'watch':
@@ -296,8 +358,15 @@ class App implements SceneHost {
       }
     }
     this.session = new MatchSession(mode, controllers, this.config(mode), seed);
+    if (mode === 'tutorial' && !this.tutorial) this.tutorial = new Tutorial();
+    if (mode !== 'tutorial') this.tutorial = null;
+    if (mode !== 'vsBot' && mode !== 'attract') this.challenge = null;
+    this.ui.challengeResult = null;
+    this.applySpeedAssist();
+    this.overMs = 0;
+    this.music.play(mode === 'attract' ? 'menu' : 'match');
     this.showIntent = false;
-    this.touch?.setVisible(mode === 'vsBot');
+    this.touch?.setVisible(mode === 'vsBot' || mode === 'tutorial');
     if (mode === 'attract') this.ui.show('menu');
     else this.ui.show('hud', this.session);
   }
@@ -335,8 +404,10 @@ class App implements SceneHost {
     const events = [...this.pendingEvents, ...session.advance(deltaMs)];
     this.pendingEvents = [];
     const audible = session.mode !== 'attract';
+    if (audible) this.music.intensity = this.intensity(session);
     for (const e of events) {
       if (audible) this.playSound(e, session);
+      if (audible && e.type === 'matchOver') this.music.play(null);
       if (e.type === 'matchOver' && session.mode === 'attract') {
         // Attract mode loops forever behind the menu.
         setTimeout(() => this.session === session && this.toMenu(), 1500);
@@ -344,8 +415,34 @@ class App implements SceneHost {
     }
     if (session.mode !== 'attract') {
       this.ui.update(session, events, deltaMs, this.keyLayouts(session));
+      if (this.tutorial && session.mode === 'tutorial' && this.ui.current === 'hud') {
+        if (this.tutorial.update(session.state, events, deltaMs)) this.sfx.play('pickup');
+        if (this.tutorial.finished) {
+          this.sfx.play('win');
+          session.paused = true;
+          this.ui.show('done', session);
+          this.touch?.setVisible(false);
+        } else {
+          this.ui.renderTutorial(this.tutorial.html(resolveKeys('solo', this.settings.keys)));
+        }
+      }
       if (session.state.phase === 'matchOver' && this.ui.current === 'hud') {
+        // Let the KO tumble (or the winning point) play out before the results.
+        this.overMs += deltaMs;
+        const wait = session.speed > 2 ? 0 : session.state.winReason === 'ko' ? 2800 : 1500;
+        if (this.overMs < wait) return events;
+        if (session.mode === 'tutorial') {
+          // Ran out of points before finishing: keep the progress, start a fresh rally.
+          this.start('tutorial');
+          return events;
+        }
         if (session.replay && !session.tuningEdited) this.saveLastReplay(session.replay);
+        const ch = this.challenge;
+        if (ch && session.mode === 'vsBot') {
+          const passed = ch.passed(session);
+          if (passed) markCompleted(ch.id);
+          this.ui.challengeResult = { title: ch.title, goal: ch.goal, passed };
+        }
         this.ui.show('over', session);
         this.touch?.setVisible(false);
       }
@@ -353,17 +450,34 @@ class App implements SceneHost {
     return events;
   }
 
+  /** 2 when the next point (or shot) can decide the match, 1 when someone is hurting. */
+  private intensity(session: MatchSession): number {
+    const s = session.state;
+    const target = s.config.pointsToWin;
+    const lead = Math.max(...s.score);
+    const matchPoint = lead >= target - 1 && s.score[0] !== s.score[1];
+    if (matchPoint || s.suddenDeath || s.phase === 'revenge') return 2;
+    if (s.config.scheme !== 'purist' && s.players.some((p) => p.hp <= 40)) return 1;
+    return lead >= target / 2 ? 1 : 0;
+  }
+
   /** Which controls each human is using, for the on-screen key hints. */
   private keyLayouts(session: MatchSession): [KeyLayout | null, KeyLayout | null] {
     const pad = (i: number) => new GamepadDevice(i).connected();
     switch (session.mode) {
       case 'vsBot':
+      case 'tutorial':
         return [this.touch ? 'touch' : pad(0) ? 'gamepad' : 'solo', null];
       case 'local2p':
         return [pad(0) ? 'gamepad' : 'p1', pad(1) ? 'gamepad' : 'p2'];
       default:
         return [null, null];
     }
+  }
+
+  /** Only the Sports Hall has an audience. */
+  private cheer(session: MatchSession, level: number): void {
+    if (session.state.config.arena === 'hall') this.sfx.play('cheer', level);
   }
 
   private playSound(e: SimEvent, session: MatchSession): void {
@@ -380,8 +494,10 @@ class App implements SceneHost {
       case 'bodyHit':
         return this.sfx.play('body');
       case 'point':
+        this.cheer(session, 0.5);
         return this.sfx.play('point');
       case 'matchOver':
+        this.cheer(session, 1);
         return this.sfx.play('win');
       case 'explosion':
         return this.sfx.play('explosion', Math.min(1.5, e.radius / 1.2));
@@ -402,6 +518,8 @@ class App implements SceneHost {
       case 'fuse':
         return this.sfx.play('tick');
       case 'ko':
+        this.sfx.muffle(1300);
+        this.sfx.play('thud');
         return this.sfx.play('ko');
       case 'revengeStart':
         return this.sfx.play('alarm');
@@ -435,4 +553,5 @@ new Phaser.Game({
 });
 
 // Exposed for end-to-end tests and debugging.
-(window as unknown as { deadminton: App }).deadminton = app;
+(window as unknown as { deadminton: App; deadmintonMusic: typeof Music }).deadminton = app;
+(window as unknown as { deadmintonMusic: typeof Music }).deadmintonMusic = Music;

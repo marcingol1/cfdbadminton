@@ -2,8 +2,10 @@
 
 Badminton, but the shuttlecock can be a grenade. Win by points, or by KO.
 
-A browser-first 1v1 game: real-time badminton rallies plus a Worms-style arsenal (coming in
-milestone M2). It ships to iOS and Android later through Capacitor.
+A browser-first 1v1 game: real-time badminton rallies plus a Worms-style arsenal. Play a bot
+(3 difficulties × 3 personalities), a friend on the same keyboard, or watch bots play. A
+tutorial, challenges, verified replays and procedural chiptune music are built in. It ships
+to iOS and Android later through Capacitor.
 
 - 📐 [Game design and rules](docs/GAME_DESIGN.md)
 - 🛠️ [Technical plan](docs/TECHNICAL_PLAN.md)
@@ -39,6 +41,10 @@ Timing and racket distance decide how accurate the shot is.
 
 Local 2 players: the left player uses WASD, L-Shift (jump), Space (swing), F (fire), Q/E
 (weapons) and R (fuse); the right player uses the arrows, R-Shift, Enter, / , [ ] and \\.
+
+All keyboard keys can be changed in **Settings → Controls** (solo, 2P left and 2P right
+separately). Settings also has music and effects volume, screen shake (full, reduced, off),
+softer flashes, a colorblind-safe palette and a game speed assist (100%, 85%, 70%).
 
 ## Repository layout
 

@@ -55,4 +55,42 @@ export const TEAMS: [TeamColors, TeamColors] = [
   { shirt: C.blue, shirtShade: C.navy, shorts: C.ink, band: C.cyan, hair: C.black, racket: C.cyan },
 ];
 
+const STANDARD: [TeamColors, TeamColors] = [{ ...TEAMS[0] }, { ...TEAMS[1] }];
+
+/** Orange vs cyan reads apart under every common color vision deficiency. */
+const COLORBLIND: [TeamColors, TeamColors] = [
+  {
+    shirt: C.orange,
+    shirtShade: C.darkRed,
+    shorts: C.darkBrown,
+    band: C.paleYellow,
+    hair: C.darkBrown,
+    racket: C.yellow,
+  },
+  { ...STANDARD[1] },
+];
+
+/** HP bar colors (healthy, hurt, critical). */
+export const HP_COLORS = {
+  ok: C.green as number,
+  warn: C.yellow as number,
+  low: C.brightRed as number,
+};
+
+export type ColorMode = 'standard' | 'colorblind';
+
+/** Switches team and HP colors everywhere (canvas and HTML). */
+export function setColorMode(mode: ColorMode): void {
+  const teams = mode === 'colorblind' ? COLORBLIND : STANDARD;
+  Object.assign(TEAMS[0], teams[0]);
+  Object.assign(TEAMS[1], teams[1]);
+  Object.assign(
+    HP_COLORS,
+    mode === 'colorblind'
+      ? { ok: C.blue, warn: C.paleYellow, low: C.pink }
+      : { ok: C.green, warn: C.yellow, low: C.brightRed },
+  );
+  document.documentElement.classList.toggle('cb', mode === 'colorblind');
+}
+
 export const css = (c: number) => `#${c.toString(16).padStart(6, '0')}`;

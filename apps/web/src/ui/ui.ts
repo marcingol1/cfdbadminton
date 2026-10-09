@@ -11,12 +11,17 @@ import type {
   Tuning,
   WeaponId,
 } from '@deadminton/sim';
+import { CHALLENGES } from '../game/challenges';
 import type { MatchSession } from '../game/session';
+import { resolveKeys } from '../input/keyboard';
+import type { KeyOverrides } from '../input/keyboard';
 import { VIEW_H, VIEW_W, sx, sy } from '../render/view';
 import { keyHints } from './keyhints';
+import { SettingsPanel } from './settings';
 import type { KeyLayout } from './keyhints';
 
-export type Screen = 'menu' | 'help' | 'replays' | 'hud' | 'pause' | 'over';
+export type Screen =
+  'menu' | 'help' | 'replays' | 'settings' | 'challenges' | 'hud' | 'pause' | 'over' | 'done';
 
 export interface UiSettings {
   difficulty: Difficulty;
@@ -37,6 +42,19 @@ export interface UiSettings {
   /** FPS readout in the corner (F3 toggles). */
   showFps: boolean;
   muted: boolean;
+  /** Screen shake strength. */
+  shake: 'full' | 'reduced' | 'off';
+  /** False softens bright flashes (explosions, KOs). */
+  flashes: boolean;
+  /** Volumes, 0..1. */
+  sfxVolume: number;
+  musicVolume: number;
+  /** Team colors: standard red/cyan, or orange/cyan with colorblind-safe HP bars. */
+  colors: 'standard' | 'colorblind';
+  /** Real-time speed of games with humans in them (1, 0.85 or 0.7). */
+  gameSpeed: number;
+  /** Remapped keys per keyboard layout. */
+  keys: KeyOverrides;
 }
 
 export interface UiActions {
@@ -47,6 +65,9 @@ export interface UiActions {
   loadReplayFile(file: File): void;
   hasLastReplay(): boolean;
   playLocal(): void;
+  tutorial(): void;
+  challenge(id: string): void;
+  completedChallenges(): Set<string>;
   watch(): void;
   resume(): void;
   pause(): void;
@@ -148,6 +169,12 @@ export class Ui {
   private readonly tuningEl: HTMLElement;
   private bannerTimer = 0;
   private hudKey = '';
+  private readonly settingsPanel: SettingsPanel;
+  /** Settings opened from the pause menu go back there (and keep the match visible). */
+  private settingsFromPause = false;
+  private lastSession: MatchSession | undefined;
+  /** Set by the app for challenge matches: shown on the results screen. */
+  challengeResult: { title: string; goal: string; passed: boolean } | null = null;
 
   constructor(
     private readonly root: HTMLElement,
@@ -160,6 +187,7 @@ export class Ui {
        <div class="banner" hidden></div>
        <div class="hint" hidden></div>
        <div class="revenge" hidden></div>
+       <div class="tutorial" hidden></div>
        <div class="watchbar" hidden></div>
        <div class="overlay" hidden></div>
        <div class="menu"></div>
@@ -171,6 +199,14 @@ export class Ui {
     this.overlayEl = root.querySelector('.overlay')!;
     this.watchEl = root.querySelector('.watchbar')!;
     this.tuningEl = root.querySelector('.tuning')!;
+    this.settingsPanel = new SettingsPanel(
+      settings,
+      () => {
+        this.hudKey = '';
+        actions.settingsChanged();
+      },
+      () => this.show(this.settingsFromPause ? 'pause' : 'menu', this.lastSession),
+    );
     root.addEventListener('click', (e) => this.onClick(e));
     root.querySelector('.pause-btn')!.addEventListener('click', () => this.actions.pause());
     this.renderMenu();
@@ -181,11 +217,22 @@ export class Ui {
   }
 
   show(screen: Screen, session?: MatchSession): void {
+    if (this.screen === 'settings' && screen !== 'settings') this.settingsPanel.close();
+    if (screen === 'settings') this.settingsFromPause = this.screen === 'pause';
+    if (session) this.lastSession = session;
     this.screen = screen;
-    const inMatch = screen === 'hud' || screen === 'pause' || screen === 'over';
-    this.menuEl.hidden = screen !== 'menu' && screen !== 'help' && screen !== 'replays';
-    this.hudEl.hidden = !inMatch;
-    this.overlayEl.hidden = screen !== 'pause' && screen !== 'over';
+    const pauseSettings = screen === 'settings' && this.settingsFromPause;
+    const inMatch = screen === 'hud' || screen === 'pause' || screen === 'over' || pauseSettings;
+    this.menuEl.hidden =
+      screen !== 'menu' &&
+      screen !== 'help' &&
+      screen !== 'replays' &&
+      screen !== 'challenges' &&
+      !(screen === 'settings' && !pauseSettings);
+    this.hudEl.hidden = !(inMatch || screen === 'done');
+    this.overlayEl.hidden =
+      screen !== 'pause' && screen !== 'over' && screen !== 'done' && !pauseSettings;
+    if (screen !== 'hud') this.renderTutorial(null);
     this.root.querySelector<HTMLElement>('.pause-btn')!.hidden =
       screen !== 'hud' || session?.mode === 'watch' || session?.mode === 'replay';
     const spectating = session?.mode === 'watch' || session?.mode === 'replay';
@@ -199,8 +246,12 @@ export class Ui {
     if (screen === 'menu') this.renderMenu();
     if (screen === 'help') this.renderHelp();
     if (screen === 'replays') this.renderReplays();
+    if (screen === 'settings')
+      this.settingsPanel.render(pauseSettings ? this.overlayEl : this.menuEl);
     if (screen === 'pause') this.renderPause();
     if (screen === 'over' && session) this.renderOver(session);
+    if (screen === 'challenges') this.renderChallenges();
+    if (screen === 'done') this.renderDone();
     if (spectating && session) this.renderWatch(session);
     this.hudKey = '';
   }
@@ -241,6 +292,16 @@ export class Ui {
         return this.show('help');
       case 'replays':
         return this.show('replays');
+      case 'settings':
+        return this.show('settings');
+      case 'tutorial':
+        return this.actions.tutorial();
+      case 'challenges':
+        // From the results screen: leave the match first.
+        if (this.screen === 'over' || this.screen === 'done') this.actions.menu();
+        return this.show('challenges');
+      case 'challenge':
+        return this.actions.challenge(el.dataset.id!);
       case 'watchReplay':
         return this.actions.watchReplay();
       case 'saveReplay':
@@ -314,8 +375,40 @@ export class Ui {
         <span class="label">REVENGE</span>
         <div class="chips">${chip('revenge', 'off', 'OFF', !s.revenge)}${chip('revenge', 'on', 'ON · RANDOM', s.revenge)}</div>
       </div>
-      <div class="chips"><button class="link" data-action="help">HOW TO PLAY</button><button class="link" data-action="replays">REPLAYS</button></div>
-      <p class="footer">M3 preview · bot personalities · replays · online play arrives in M5</p>`;
+      <div class="chips links"><button class="link" data-action="tutorial">TUTORIAL</button><button class="link" data-action="challenges">CHALLENGES</button><button class="link" data-action="help">HOW TO PLAY</button><button class="link" data-action="replays">REPLAYS</button><button class="link" data-action="settings">SETTINGS</button></div>
+      <p class="footer">M4 preview · online play arrives in M5</p>`;
+  }
+
+  private renderChallenges(): void {
+    const done = this.actions.completedChallenges();
+    const count = CHALLENGES.filter((c) => done.has(c.id)).length;
+    this.menuEl.innerHTML = `
+      <h2>CHALLENGES <span class="count">${count}/${CHALLENGES.length}</span></h2>
+      <div class="challenges">
+        ${CHALLENGES.map(
+          (
+            c,
+          ) => `<button class="challenge${done.has(c.id) ? ' done' : ''}" data-action="challenge" data-id="${c.id}">
+            <b>${done.has(c.id) ? '✓' : '○'}</b><span class="name">${c.title}</span><span class="goal">${c.goal}</span></button>`,
+        ).join('')}
+      </div>
+      <button class="big" data-action="back">BACK</button>`;
+  }
+
+  /** Tutorial checklist panel (null hides it). */
+  renderTutorial(html: string | null): void {
+    const el = this.root.querySelector<HTMLElement>('.tutorial')!;
+    el.hidden = !html;
+    if (html && el.innerHTML !== html) el.innerHTML = html;
+  }
+
+  private renderDone(): void {
+    this.overlayEl.innerHTML = `
+      <h2 class="p1">TUTORIAL COMPLETE!</h2>
+      <p class="small-note">You know the basics. Weapons, crates and Revenge Turns are explained in HOW TO PLAY.</p>
+      <button class="big" data-action="playBot">PLAY VS BOT</button>
+      <button class="big" data-action="challenges">CHALLENGES</button>
+      <button class="big" data-action="menu">MENU</button>`;
   }
 
   private renderReplays(message = ''): void {
@@ -351,6 +444,7 @@ export class Ui {
         <p><b>Revenge Turn</b> (optional, off by default): when it's on, losing a point sometimes (about 1 in 5) gives you one Worms-style shot. Q / E picks Rocket, Mortar, Homing Missile, Air Strike, Medkit, Shield (or skip). ↑ / ↓ aims, hold K (or right click) to charge, release to fire. Your opponent can run to dodge. Revenge shots never score points.</p>
         <p><b>Crates</b> parachute in: walk into them for ammo, health or a shield. Shoot them and they explode. Heavy weapons unlock after a few rallies.</p>
         <p><b>Local 2P</b>: left player WASD, L-Shift jump, Space swing, F fire, Q/E weapons, R fuse · right player arrows, R-Shift jump, Enter swing, / fire, [ ] weapons, \\ fuse. <b>Gamepad</b>: A jump, X swing, Y/RT fire, LB/RB weapons, B fuse.</p>
+        <p>These are the default keys: change them in <b>SETTINGS → CONTROLS</b>. New here? The <b>TUTORIAL</b> walks you through the basics.</p>
         <p>Esc pauses · \` opens the tuning panel · F3 shows or hides the FPS counter.</p>
       </div>
       <button class="big" data-action="back">BACK</button>`;
@@ -362,6 +456,7 @@ export class Ui {
       <h2>PAUSED</h2>
       <button class="big" data-action="resume">RESUME</button>
       <button class="big" data-action="restart">RESTART</button>
+      <button class="big" data-action="settings">SETTINGS</button>
       <button class="big" data-action="menu">MENU</button>
       <div class="chips">
         <button class="chip${s.assistMarker ? ' on' : ''}" data-action="marker">LANDING MARKER</button>
@@ -383,14 +478,21 @@ export class Ui {
       : session.verified
         ? '<p class="verified ok">REPLAY VERIFIED ✓ · identical to the original match</p>'
         : '<p class="verified bad">REPLAY MISMATCH ✗ · this build plays it differently</p>';
+    const ch = this.challengeResult;
+    const challenge = ch
+      ? `<p class="verified ${ch.passed ? 'ok' : 'bad'}">${ch.title} · ${ch.passed ? 'CHALLENGE COMPLETE ✓' : `NOT YET · ${ch.goal}`}</p>`
+      : '';
     const buttons = isReplay
       ? `<button class="big" data-action="restart">WATCH AGAIN</button>`
-      : `<button class="big" data-action="restart">REMATCH</button>
+      : ch
+        ? `<button class="big" data-action="restart">${ch.passed ? 'PLAY AGAIN' : 'RETRY'}</button>
+         <div class="chips"><button class="chip" data-action="challenges">CHALLENGES</button><button class="chip" data-action="watchReplay">WATCH REPLAY</button><button class="chip" data-action="saveReplay">SAVE REPLAY</button></div>`
+        : `<button class="big" data-action="restart">REMATCH</button>
          <div class="chips"><button class="chip" data-action="watchReplay">WATCH REPLAY</button><button class="chip" data-action="saveReplay">SAVE REPLAY</button></div>`;
     this.overlayEl.innerHTML = `
-      <h2 class="${w === 0 ? 'p1' : 'p2'}">${isReplay ? 'REPLAY · ' : ''}${name} WINS${how}</h2>
+      <h2 class="${w === 0 ? 'p1' : 'p2'}">${isReplay ? 'REPLAY · ' : ''}${name === 'YOU' ? 'YOU WIN' : `${name} WINS`}${how}</h2>
       <p class="final">${st.score[0]} – ${st.score[1]}</p>
-      ${check}
+      ${check}${challenge}
       <table class="stats">
         <tr><td>${s.winners[0]}</td><th>winners</th><td>${s.winners[1]}</td></tr>
         <tr><td>${s.errors[0]}</td><th>errors</th><td>${s.errors[1]}</td></tr>
@@ -524,7 +626,8 @@ export class Ui {
       const keys = (id: 0 | 1) => {
         const layout = layouts[id];
         if (!layout || !this.settings.keyHints) return '';
-        const html = keyHints(st, id, layout);
+        const set = layout === 'p1' || layout === 'p2' ? layout : 'solo';
+        const html = keyHints(st, id, layout, resolveKeys(set, this.settings.keys));
         return html ? `<div class="row keys">${html}</div>` : '';
       };
       const games =

@@ -2,7 +2,7 @@ import { DT, ReplayRecorder, createMatch, hashState, step } from '@deadminton/si
 import type { MatchConfig, MatchState, PlayerId, Replay, SimEvent } from '@deadminton/sim';
 import type { Controller } from './controllers';
 
-export type SessionMode = 'vsBot' | 'local2p' | 'watch' | 'attract' | 'replay';
+export type SessionMode = 'vsBot' | 'local2p' | 'watch' | 'attract' | 'replay' | 'tutorial';
 
 export interface MatchStats {
   rallies: number;
@@ -42,6 +42,9 @@ export class MatchSession {
   paused = false;
   /** Render-only freeze after big hits (single player only; the sim is unaffected). */
   private freezeMs = 0;
+  /** Render-only slow motion (KOs): sim ticks run slower in real time, results unchanged. */
+  private slowMs = 0;
+  private slowScale = 1;
   private accumulator = 0;
   private rallyHits = 0;
   readonly prev: RenderPrev;
@@ -65,7 +68,7 @@ export class MatchSession {
     this.source = source;
     this.state = createMatch(config, seed);
     this.recorder =
-      mode === 'attract' || mode === 'replay'
+      mode === 'attract' || mode === 'replay' || mode === 'tutorial'
         ? null
         : new ReplayRecorder(this.state.config, seed, [controllers[0].label, controllers[1].label]);
     this.prev = {
@@ -89,8 +92,20 @@ export class MatchSession {
   }
 
   hitStop(ms: number): void {
-    if (this.mode === 'vsBot' || this.mode === 'local2p')
+    if (this.mode === 'vsBot' || this.mode === 'local2p' || this.mode === 'tutorial')
       this.freezeMs = Math.max(this.freezeMs, ms);
+  }
+
+  slowMo(ms: number, scale: number): void {
+    if (this.speed > 2) return;
+    this.slowMs = Math.max(this.slowMs, ms);
+    this.slowScale = scale;
+  }
+
+  /** How fast visual effects should run right now (0 while frozen or paused). */
+  get timeScale(): number {
+    if (this.paused || this.freezeMs > 0) return 0;
+    return this.slowMs > 0 ? this.slowScale : 1;
   }
 
   /** Advance by real elapsed time. Returns all sim events produced. */
@@ -101,7 +116,12 @@ export class MatchSession {
       this.freezeMs -= elapsedMs;
       return events;
     }
-    this.accumulator += Math.min(elapsedMs, 250) * this.speed;
+    let scale = this.speed;
+    if (this.slowMs > 0) {
+      this.slowMs -= elapsedMs;
+      scale *= this.slowScale;
+    }
+    this.accumulator += Math.min(elapsedMs, 250) * scale;
     let steps = 0;
     while (this.accumulator >= STEP_MS && steps < MAX_STEPS_PER_FRAME) {
       events.push(...this.tick());

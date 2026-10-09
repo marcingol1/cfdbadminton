@@ -1,7 +1,7 @@
 import { TERRAIN_STEP, WALL_X } from '@deadminton/sim';
 import type { Crate, MatchState, Mine, PlayerState, Projectile } from '@deadminton/sim';
 import type { Painter } from './painter';
-import { C } from './palette';
+import { C, HP_COLORS } from './palette';
 import { CENTER_X, FLOOR_Y, PX_PER_M, sx, sy } from './view';
 
 // 3×5 pixel digits for fuse countdowns and the like.
@@ -156,7 +156,7 @@ export function drawStun(p: Painter, x: number, y: number, timeMs: number): void
 export function drawHpBar(p: Painter, pl: PlayerState, x: number, y: number): void {
   const w = 16;
   const fill = Math.round((pl.hp / 100) * w);
-  const color = pl.hp > 60 ? C.green : pl.hp > 30 ? C.yellow : C.brightRed;
+  const color = pl.hp > 60 ? HP_COLORS.ok : pl.hp > 30 ? HP_COLORS.warn : HP_COLORS.low;
   p.rect(x - w / 2 - 1, y - 52, w + 2, 4, C.black, 0.8);
   p.rect(x - w / 2, y - 51, fill, 2, color);
   if (pl.shield > 0) p.rect(x - w / 2, y - 52, Math.round((pl.shield / 100) * w), 1, C.cyan);

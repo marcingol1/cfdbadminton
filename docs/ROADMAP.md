@@ -73,12 +73,30 @@ Sizes are relative: S < M < L.
 
 **→ MVP release:** deploy the web build to Vercel (production from `master`, a preview for every PR).
 
-### M4 — Polish (M)
+### M4 — Polish (M) — ✅ built
 
-Art pass (sprites, animation, particles), audio and music, game feel (hit-stop, slow
-motion on KO, screen shake with an option to reduce it), menus and settings, key
-remapping, accessibility (a colorblind-safe palette, a game-speed assist), a tutorial,
-and challenges.
+- **Animation:** squash and stretch on jumps and landings, running lean, idle breathing,
+  hit flinches, a stun wobble, win and lose poses, racket smears, and a tumbling KO body
+  that a tombstone drops onto.
+- **Effects:** footstep and landing dust, smash speed lines and a hot trail, perfect-hit
+  rings, rolling dithered smoke, shockwaves and debris; a cheering crowd in the Hall that
+  supports the player on its side.
+- **Game feel:** hit-stop on smashes and perfect hits, KO slow motion with a muffled
+  soundtrack, screen shake, a short pause before the results so the finish plays out.
+- **Audio:** procedural chiptune music (menu theme; a match loop that intensifies when
+  someone is hurt and at match point, sudden death and Revenge Turns), crowd roars,
+  separate music and effects volumes.
+- **Settings:** sound and video, accessibility (colorblind-safe palette, game speed
+  assist 100/85/70%, screen shake full/reduced/off, softer flashes, landing marker, key
+  hints) and **key remapping** for the solo, 2P left and 2P right keyboard layouts. The
+  key hints follow your keys.
+- **Tutorial:** a 9-step interactive checklist in a real match against an Easy Purist
+  (move, jump, hit, rally, clear, drop, smash, loaded shuttle, win a point).
+- **Challenges:** 9 fixed matches with goals (First Win, Pure Badminton, Untouchable,
+  Demolition, Rooftop Rumble, Smash Machine, Marathon, Giant Slayer, Berserker's Bane);
+  progress is kept in the browser.
+- Still open: hand-made sprite sheets (the art stays code-drawn for now), touch-screen
+  key remapping, gamepad remapping.
 
 ### M5 — Online multiplayer (L)
 

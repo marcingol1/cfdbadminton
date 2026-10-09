@@ -332,7 +332,7 @@ replay sharing links.
   - **MVP (M0–M3):** all sprites are pixel grids defined in code and turned into textures
     at boot. Sound effects are generated procedurally with WebAudio (sfxr-style). You
     don't need to deliver anything.
-  - **Polish (M4):** we either commission a pixel artist using this document as the
-    brief, or swap in hand-made sprite sheets. Sprites are addressed by animation name,
-    so replacing the art never touches game code. Music comes from a commissioned or
-    licensed source.
+  - **Polish (M4):** the code-drawn art got an animation and effects pass, and the music
+    is a procedural chiptune sequencer (`apps/web/src/audio/music.ts`), so there are still
+    no asset files. A pixel artist or composer can replace either later without touching
+    game logic: rendering only reads the sim state and events.
