@@ -19,19 +19,62 @@ interface Progress {
 
 interface Step {
   title: string;
-  text: (k: KeyMap) => string;
+  text: (k: ControlLabels) => string;
   /** Called every frame with this frame's events; true once the step is done. */
   done: (p: Progress, events: SimEvent[], s: MatchState) => boolean;
 }
 
-const k1 = (codes: string[]) => keyLabel(codes[0]);
+/** How to name each control in the instructions, for the device the player uses. */
+export interface ControlLabels {
+  move: string;
+  jump: string;
+  hit: string;
+  up: string;
+  down: string;
+  forward: string;
+  weapon: string;
+}
+
+/** Keyboard labels from the player's (possibly remapped) keys. */
+export function keyboardLabels(k: KeyMap): ControlLabels {
+  const one = (codes: string[]) => keyLabel(codes[0]);
+  return {
+    move: `${one(k.left)} / ${one(k.right)}`,
+    jump: one(k.jump),
+    hit: one(k.hit),
+    up: one(k.up),
+    down: one(k.down),
+    forward: `${one(k.right)} (toward the net)`,
+    weapon: `${one(k.prev)} / ${one(k.next)}`,
+  };
+}
+
+export const TOUCH_LABELS: ControlLabels = {
+  move: 'the stick',
+  jump: 'JUMP',
+  hit: 'HIT',
+  up: 'the stick up',
+  down: 'the stick down',
+  forward: 'the stick toward the net',
+  weapon: 'WPN',
+};
+
+export const GAMEPAD_LABELS: ControlLabels = {
+  move: 'the left stick',
+  jump: 'A',
+  hit: 'X',
+  up: 'the stick up',
+  down: 'the stick down',
+  forward: 'the stick toward the net',
+  weapon: 'LB / RB',
+};
 const myHits = (events: SimEvent[]) =>
   events.filter((e): e is Extract<SimEvent, { type: 'hit' }> => e.type === 'hit' && e.player === 0);
 
 const STEPS: Step[] = [
   {
     title: 'MOVE',
-    text: (k) => `Run left and right with ${k1(k.left)} / ${k1(k.right)}.`,
+    text: (k) => `Run left and right with ${k.move}.`,
     done: (p, _e, s) => {
       const x = s.players[0].x;
       if (p.lastX !== null) p.moved += Math.abs(x - p.lastX);
@@ -41,41 +84,41 @@ const STEPS: Step[] = [
   },
   {
     title: 'JUMP',
-    text: (k) => `Jump with ${k1(k.jump)}. Jumping lets you reach high shuttles.`,
+    text: (k) => `Jump with ${k.jump}. Jumping lets you reach high shuttles.`,
     done: (_p, _e, s) => !s.players[0].grounded && s.players[0].vy > 0,
   },
   {
     title: 'HIT IT',
     text: (k) =>
-      `Swing with ${k1(k.hit)} when the shuttle is near your racket. Serve when it's in your hand.`,
+      `Swing with ${k.hit} when the shuttle is near your racket. Serve when it's in your hand.`,
     done: (_p, e) => myHits(e).length > 0,
   },
   {
     title: 'RALLY',
     text: (k) =>
-      `Return the shuttle 3 times. Timing matters: a well-timed ${k1(k.hit)} is more accurate.`,
+      `Return the shuttle 3 times. Timing matters: a well-timed ${k.hit} is more accurate.`,
     done: (p, e) => (p.count += myHits(e).length) >= 3,
   },
   {
     title: 'CLEAR',
-    text: (k) => `Hold ${k1(k.up)} while you swing: a high, deep CLEAR to push the bot back.`,
+    text: (k) => `Hold ${k.up} while you swing: a high, deep CLEAR to push the bot back.`,
     done: (_p, e) => myHits(e).some((h) => h.shot === 'clear' || h.shot === 'lift'),
   },
   {
     title: 'DROP',
-    text: (k) => `Hold ${k1(k.down)} while you swing: a soft DROP that falls just over the net.`,
+    text: (k) => `Hold ${k.down} while you swing: a soft DROP that falls just over the net.`,
     done: (_p, e) => myHits(e).some((h) => h.shot === 'drop' || h.shot === 'netShot'),
   },
   {
     title: 'SMASH',
     text: (k) =>
-      `When the shuttle is high, hold ${k1(k.right)} (toward the net) and swing: SMASH! Jump for a steeper one.`,
+      `When the shuttle is high, hold ${k.forward} and swing: SMASH! Jump for a steeper one.`,
     done: (_p, e) => myHits(e).some((h) => h.shot === 'smash'),
   },
   {
     title: 'LOADED SHUTTLE',
     text: (k) =>
-      `Press ${k1(k.prev)} / ${k1(k.next)} to load a weapon (top left), then hit the shuttle. Not on a serve!`,
+      `Press ${k.weapon} to load a weapon (top left), then hit the shuttle. Not on a serve!`,
     done: (_p, e) => e.some((x) => x.type === 'loaded' && x.player === 0),
   },
   {
@@ -119,7 +162,7 @@ export class Tutorial {
   }
 
   /** Panel HTML: step counter, title and instruction (with the player's own keys). */
-  html(keys: KeyMap): string {
+  html(keys: ControlLabels): string {
     if (this.finished) return '';
     const step = STEPS[this.index]!;
     const done = this.doneMs > 0;

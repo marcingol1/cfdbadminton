@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createMatch } from '@deadminton/sim';
 import type { SimEvent } from '@deadminton/sim';
-import { TUTORIAL_CONFIG, Tutorial } from '../src/game/tutorial';
+import { TOUCH_LABELS, TUTORIAL_CONFIG, Tutorial, keyboardLabels } from '../src/game/tutorial';
 import { resolveKeys } from '../src/input/keyboard';
 
 const hit = (shot: string, player: 0 | 1 = 0): SimEvent =>
@@ -51,7 +51,8 @@ describe('tutorial', () => {
   it('shows the player their own keys', () => {
     const t = new Tutorial();
     const keys = resolveKeys('solo', { solo: { left: ['KeyH'], right: ['KeyL'] } });
-    expect(t.html(keys)).toContain('H / L');
-    expect(t.html(keys)).toContain('1/9');
+    expect(t.html(keyboardLabels(keys))).toContain('H / L');
+    expect(t.html(keyboardLabels(keys))).toContain('1/9');
+    expect(t.html(TOUCH_LABELS)).toContain('with the stick');
   });
 });

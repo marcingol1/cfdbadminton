@@ -12,7 +12,13 @@ import { BotController, HumanController, ReplayController } from './game/control
 import type { Controller } from './game/controllers';
 import { MatchSession } from './game/session';
 import type { SessionMode } from './game/session';
-import { TUTORIAL_CONFIG, Tutorial } from './game/tutorial';
+import {
+  GAMEPAD_LABELS,
+  TOUCH_LABELS,
+  TUTORIAL_CONFIG,
+  Tutorial,
+  keyboardLabels,
+} from './game/tutorial';
 import type { InputDevice } from './input/device';
 import { GamepadDevice } from './input/gamepad';
 import { KeyboardDevice, resolveKeys } from './input/keyboard';
@@ -460,7 +466,16 @@ class App implements SceneHost {
           session.paused = true;
           this.ui.show('done', session);
         } else {
-          this.ui.renderTutorial(this.tutorial.html(resolveKeys('solo', this.settings.keys)));
+          const layout = this.keyLayouts(session)[0];
+          this.ui.renderTutorial(
+            this.tutorial.html(
+              layout === 'touch'
+                ? TOUCH_LABELS
+                : layout === 'gamepad'
+                  ? GAMEPAD_LABELS
+                  : keyboardLabels(resolveKeys('solo', this.settings.keys)),
+            ),
+          );
         }
       }
       if (session.state.phase === 'matchOver' && this.ui.current === 'hud') {
