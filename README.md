@@ -1,75 +1,50 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+# Deadminton
 
-[travis-image]: https://api.travis-ci.org/nestjs/nest.svg?branch=master
-[travis-url]: https://travis-ci.org/nestjs/nest
-[linux-image]: https://img.shields.io/travis/nestjs/nest/master.svg?label=linux
-[linux-url]: https://travis-ci.org/nestjs/nest
-  
-  <p align="center">A progressive <a href="http://nodejs.org" target="blank">Node.js</a> framework for building efficient and scalable server-side applications, heavily inspired by <a href="https://angular.io" target="blank">Angular</a>.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore"><img src="https://img.shields.io/npm/dm/@nestjs/core.svg" alt="NPM Downloads" /></a>
-<a href="https://travis-ci.org/nestjs/nest"><img src="https://api.travis-ci.org/nestjs/nest.svg?branch=master" alt="Travis" /></a>
-<a href="https://travis-ci.org/nestjs/nest"><img src="https://img.shields.io/travis/nestjs/nest/master.svg?label=linux" alt="Linux" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#5" alt="Coverage" /></a>
-<a href="https://gitter.im/nestjs/nestjs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=body_badge"><img src="https://badges.gitter.im/nestjs/nestjs.svg" alt="Gitter" /></a>
-<a href="https://opencollective.com/nest#backer"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec"><img src="https://img.shields.io/badge/Donate-PayPal-dc3d53.svg"/></a>
-  <a href="https://twitter.com/nestframework"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Badminton, but the shuttlecock can be a grenade. Win by points, or by KO.
 
-## Description
+A browser-first 1v1 game: real-time badminton rallies plus a Worms-style arsenal (coming in
+milestone M2). It ships to iOS and Android later through Capacitor.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- 📐 [Game design and rules](docs/GAME_DESIGN.md)
+- 🛠️ [Technical plan](docs/TECHNICAL_PLAN.md)
+- 🗺️ [Roadmap and decisions](docs/ROADMAP.md)
 
-## Installation
+## Quick start
 
 ```bash
-$ npm install
+npm install
+npm run dev        # opens the game at http://localhost:5173
 ```
 
-## Running the app
+## Controls (M1)
+
+| Action         | Keyboard                         | Gamepad    | Touch       |
+| -------------- | -------------------------------- | ---------- | ----------- |
+| Move           | A / D or ← / →                   | Left stick | Left stick  |
+| Shot direction | W (clear) · S (drop) · D (smash) | Left stick | Left stick  |
+| Jump           | Space                            | A          | JUMP button |
+| Swing / serve  | J or left mouse button           | X          | HIT button  |
+| Pause          | Esc                              | Start      | ❚❚ button   |
+| Tuning panel   | ` (backtick)                     |            |             |
+
+Hold a direction while you swing: **up** → clear / lift, **down** → drop / net shot,
+**toward the net** → smash (when the shuttle is high) or drive, **nothing** → clear / lift.
+Timing and racket distance decide how accurate the shot is.
+
+## Repository layout
+
+| Path             | What                                                            |
+| ---------------- | --------------------------------------------------------------- |
+| `packages/sim`   | Deterministic, headless game simulation (rules, physics, shots) |
+| `packages/bots`  | AI players that drive the sim through the same inputs as humans |
+| `apps/web`       | Vite + Phaser browser client (rendering, input, audio, menus)   |
+| `tools/simbatch` | Headless bot-vs-bot batch runner for balancing                  |
+
+## Scripts
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm test              # unit tests (rules are tested by their R-xx IDs)
+npm run check         # lint + format + typecheck + tests (what CI runs)
+npm run simbatch -- --a hard --b medium --n 200   # balance report
+npm run build         # static web build in apps/web/dist
 ```
-
-## Test
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-  Nest is [MIT licensed](LICENSE).

@@ -19,16 +19,16 @@ and `ROADMAP.md` (milestones and scope).
 
 Everything we want falls out of this one design:
 
-| Need | How the sim core provides it |
-|---|---|
-| Bot vs Bot showcase | Two bot controllers feed inputs. There is no special mode |
-| Balancing | Run thousands of matches headless in Node in seconds |
-| Bots that can "think" | Bots forward-simulate shuttle and rocket trajectories with the real physics |
-| Replays | A replay is just `seed + input log`, a few KB per match |
-| Online multiplayer | Rollback netcode needs only inputs on the wire, and snapshots for resimulation |
-| Anti-cheat (later) | The server replays the input log to verify a result |
-| Mobile port | The sim is plain TypeScript and runs unchanged anywhere JavaScript runs |
-| Tests | Rules are pure functions of state, so they are trivial to unit-test |
+| Need                  | How the sim core provides it                                                   |
+| --------------------- | ------------------------------------------------------------------------------ |
+| Bot vs Bot showcase   | Two bot controllers feed inputs. There is no special mode                      |
+| Balancing             | Run thousands of matches headless in Node in seconds                           |
+| Bots that can "think" | Bots forward-simulate shuttle and rocket trajectories with the real physics    |
+| Replays               | A replay is just `seed + input log`, a few KB per match                        |
+| Online multiplayer    | Rollback netcode needs only inputs on the wire, and snapshots for resimulation |
+| Anti-cheat (later)    | The server replays the input log to verify a result                            |
+| Mobile port           | The sim is plain TypeScript and runs unchanged anywhere JavaScript runs        |
+| Tests                 | Rules are pure functions of state, so they are trivial to unit-test            |
 
 ### Determinism rules (enforced by lint and tests)
 
@@ -36,7 +36,7 @@ Everything we want falls out of this one design:
 - **No `Math.random`**: a seeded PRNG (sfc32) lives inside the state.
 - **No `Math.sin/cos/atan2/exp/pow`** in the sim. They are not guaranteed to give
   identical results across engines, and iOS (JavaScriptCore) and Android (V8) must agree
-  bit-for-bit for online play. Basic IEEE arithmetic (`+ - * /` and `Math.sqrt`) *is*
+  bit-for-bit for online play. Basic IEEE arithmetic (`+ - * /` and `Math.sqrt`) _is_
   deterministic in JavaScript. We ship our own polynomial `sin/cos/atan2` and a lookup
   table for drag.
 - **No wall-clock time, `Date`, or iteration over unordered collections.** All entities
@@ -74,19 +74,19 @@ guarantees determinism.
 
 ## 3. Technology stack
 
-| Layer | Choice | Why |
-|---|---|---|
-| Language | **TypeScript (strict)** everywhere | One language for sim, client, bots, server and tools |
-| Repo | **npm workspaces monorepo** | Simple. The sim is shared by client, server and tools |
-| Build | **Vite** | Fast dev loop, PWA plugin, static output |
-| Rendering, input, audio | **Phaser** (latest stable) | Gives us scenes, sprites, particles, camera shake, audio, gamepad and touch input. We do **not** use its physics. The renderer is a thin "view of sim state", so it stays swappable (for PixiJS, for example) |
-| Menus and HUD overlays | DOM overlay (Preact) | Accessible, crisp text, easy settings screens |
-| Tests | **Vitest** (sim, bots); **Playwright** (smoke and e2e, cross-engine determinism) | |
-| Lint / format | ESLint + Prettier, with a custom rule banning non-deterministic APIs in `packages/sim` | |
-| Mobile | **Capacitor** wrapping the same web build for iOS and Android | One codebase. Native plugins for haptics, status bar, store builds |
-| Server (later) | Node + `ws`. Rooms, relay, matchmaking | Minimal. See §7 |
-| CI | GitHub Actions: lint, typecheck, test, determinism, bot-vs-bot smoke batch, build | |
-| Hosting (web) | Any static host (Cloudflare Pages, GitHub Pages or Vercel) | The client is fully static until online play |
+| Layer                   | Choice                                                                                 | Why                                                                                                                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language                | **TypeScript (strict)** everywhere                                                     | One language for sim, client, bots, server and tools                                                                                                                                                          |
+| Repo                    | **npm workspaces monorepo**                                                            | Simple. The sim is shared by client, server and tools                                                                                                                                                         |
+| Build                   | **Vite**                                                                               | Fast dev loop, PWA plugin, static output                                                                                                                                                                      |
+| Rendering, input, audio | **Phaser** (latest stable)                                                             | Gives us scenes, sprites, particles, camera shake, audio, gamepad and touch input. We do **not** use its physics. The renderer is a thin "view of sim state", so it stays swappable (for PixiJS, for example) |
+| Menus and HUD overlays  | DOM overlay (Preact)                                                                   | Accessible, crisp text, easy settings screens                                                                                                                                                                 |
+| Tests                   | **Vitest** (sim, bots); **Playwright** (smoke and e2e, cross-engine determinism)       |                                                                                                                                                                                                               |
+| Lint / format           | ESLint + Prettier, with a custom rule banning non-deterministic APIs in `packages/sim` |                                                                                                                                                                                                               |
+| Mobile                  | **Capacitor** wrapping the same web build for iOS and Android                          | One codebase. Native plugins for haptics, status bar, store builds                                                                                                                                            |
+| Server (later)          | Node + `ws`. Rooms, relay, matchmaking                                                 | Minimal. See §7                                                                                                                                                                                               |
+| CI                      | GitHub Actions: lint, typecheck, test, determinism, bot-vs-bot smoke batch, build      |                                                                                                                                                                                                               |
+| Hosting (web)           | Any static host (Cloudflare Pages, GitHub Pages or Vercel)                             | The client is fully static until online play                                                                                                                                                                  |
 
 **Why not Unity or Godot?** Both would work. We are choosing web-first because it gives
 instant sharing via a link, needs no install, and has the fastest iteration loop. The
@@ -132,26 +132,39 @@ later server.
 ```ts
 type PlayerId = 0 | 1;
 
-interface InputFrame {        // quantized, ~6 bytes on the wire
-  move: number;               // int8 -128..127
-  buttons: number;            // bitflags: JUMP | HIT | THROW | FIRE | WEAPON_NEXT | ...
-  aim: number;                // uint16 angle (revenge turn / throw)
-  power: number;              // uint8
-  fuse: number;               // 1..5
+interface InputFrame {
+  // quantized, ~6 bytes on the wire
+  move: number; // int8 -128..127
+  buttons: number; // bitflags: JUMP | HIT | THROW | FIRE | WEAPON_NEXT | ...
+  aim: number; // uint16 angle (revenge turn / throw)
+  power: number; // uint8
+  fuse: number; // 1..5
 }
 
-interface MatchConfig { arena: ArenaId; scheme: SchemeId; pointsToWin: 7 | 11 | 21;
-                        bestOf: 1 | 3; timeLimitSec?: number; classicTargeting: boolean; }
+interface MatchConfig {
+  arena: ArenaId;
+  scheme: SchemeId;
+  pointsToWin: 7 | 11 | 21;
+  bestOf: 1 | 3;
+  timeLimitSec?: number;
+  classicTargeting: boolean;
+}
 
 function createMatch(config: MatchConfig, seed: number): MatchState;
 function step(state: MatchState, inputs: [InputFrame, InputFrame]): StepResult; // mutates + returns events
-function hashState(state: MatchState): number;      // desync detection and tests
-function snapshot(state: MatchState): Snapshot;     // rollback and replays
+function hashState(state: MatchState): number; // desync detection and tests
+function snapshot(state: MatchState): Snapshot; // rollback and replays
 function restore(s: Snapshot): MatchState;
 
 // helpers bots may use (pure, no hidden information)
 function predictShuttle(state: MatchState, maxTicks: number): TrajectoryPoint[];
-function simulateShot(state: MatchState, by: PlayerId, weapon: WeaponId, aim: number, power: number): ShotOutcome;
+function simulateShot(
+  state: MatchState,
+  by: PlayerId,
+  weapon: WeaponId,
+  aim: number,
+  power: number,
+): ShotOutcome;
 ```
 
 `MatchState.phase` is a state machine:
@@ -169,7 +182,7 @@ never the opponent's inputs.
 **Rally brain (runs about every 6 ticks, plus a reaction delay):**
 
 1. **Perceive:** take the shuttle state, then forward-simulate the landing point and the
-   *intercept window* (where and when it will be within reach). Error is injected
+   _intercept window_ (where and when it will be within reach). Error is injected
    according to difficulty.
 2. **Move:** steer toward the intercept point, with a footwork-speed factor. Between shots,
    recover to the court's center.
@@ -184,14 +197,14 @@ never the opponent's inputs.
 the maximum of `expectedDamage − selfRisk`, plus aim noise. As the target, predict the
 incoming impact and move out of the radius.
 
-| Knob | Easy | Medium | Hard |
-|---|---|---|---|
-| Reaction delay | 300 ms | 180 ms | 90 ms |
-| Landing prediction error | ±0.8 m | ±0.35 m | ±0.1 m |
-| Footwork speed | 75 % | 90 % | 100 % |
-| Shot accuracy noise | High | Medium | Low |
-| Revenge aim noise | ±12° | ±5° | ±1.5° |
-| Weapon IQ | Random-ish | Heuristic | Full utility |
+| Knob                     | Easy       | Medium    | Hard         |
+| ------------------------ | ---------- | --------- | ------------ |
+| Reaction delay           | 300 ms     | 180 ms    | 90 ms        |
+| Landing prediction error | ±0.8 m     | ±0.35 m   | ±0.1 m       |
+| Footwork speed           | 75 %       | 90 %      | 100 %        |
+| Shot accuracy noise      | High       | Medium    | Low          |
+| Revenge aim noise        | ±12°       | ±5°       | ±1.5°        |
+| Weapon IQ                | Random-ish | Heuristic | Full utility |
 
 Personalities (Purist, Berserker, Balanced; see the design document §12) are weight
 vectors on the utility scores.
@@ -254,22 +267,22 @@ The plan is to be **mobile-ready from milestone M1, and mobile-shipped at milest
 
 ## 9. Quality strategy
 
-| Layer | What is tested |
-|---|---|
-| Sim unit tests | Every rule `R-xx` has at least one test named after it (for example, "R-27 detonation counts as landing below") |
-| Physics tests | Trajectory sanity (a clear lands deep, a drop lands short), no tunneling at 80 m/s, crater math |
-| Determinism | The same seed and inputs give the same hash across Node, Chromium and WebKit, and after a snapshot/restore round trip |
-| Bot soak | Every pull request runs a 200-match bot-vs-bot batch: no exceptions, every match terminates, no NaN in state |
+| Layer          | What is tested                                                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Sim unit tests | Every rule `R-xx` has at least one test named after it (for example, "R-27 detonation counts as landing below")                         |
+| Physics tests  | Trajectory sanity (a clear lands deep, a drop lands short), no tunneling at 80 m/s, crater math                                         |
+| Determinism    | The same seed and inputs give the same hash across Node, Chromium and WebKit, and after a snapshot/restore round trip                   |
+| Bot soak       | Every pull request runs a 200-match bot-vs-bot batch: no exceptions, every match terminates, no NaN in state                            |
 | Golden replays | Recorded matches replayed after a refactor must produce the same final hash (or the change is intended and the replays are re-recorded) |
-| E2E smoke | Playwright loads the game, starts Watch mode at 8×, and asserts the match-over screen appears |
-| Benchmark | The cost of `step()` is tracked per pull request |
+| E2E smoke      | Playwright loads the game, starts Watch mode at 8×, and asserts the match-over screen appears                                           |
+| Benchmark      | The cost of `step()` is tracked per pull request                                                                                        |
 
 ## 10. Technical risks
 
-| Risk | Mitigation |
-|---|---|
-| Real-time badminton **doesn't feel good** (the main risk) | M1 is *only* badminton, with a live tuning panel (drag, hit window, speeds). Weapons only go in once the rally is fun |
-| Touch is too imprecise for timing hits | A generous hit window, auto-facing, aim assist, and an optional landing marker. Playtest on a real phone at the end of M1 via the PWA |
-| Cross-engine determinism bugs | A deterministic math library, the lint ban, and a CI hash comparison in WebKit and Chromium |
-| Weapons dominate, or are useless | Data-driven tuning and simbatch balance targets |
-| Scope creep and infrastructure churn (the repo history shows this happened before) | Gameplay first. No backend until M5. Every milestone ends with something playable |
+| Risk                                                                               | Mitigation                                                                                                                            |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Real-time badminton **doesn't feel good** (the main risk)                          | M1 is _only_ badminton, with a live tuning panel (drag, hit window, speeds). Weapons only go in once the rally is fun                 |
+| Touch is too imprecise for timing hits                                             | A generous hit window, auto-facing, aim assist, and an optional landing marker. Playtest on a real phone at the end of M1 via the PWA |
+| Cross-engine determinism bugs                                                      | A deterministic math library, the lint ban, and a CI hash comparison in WebKit and Chromium                                           |
+| Weapons dominate, or are useless                                                   | Data-driven tuning and simbatch balance targets                                                                                       |
+| Scope creep and infrastructure churn (the repo history shows this happened before) | Gameplay first. No backend until M5. Every milestone ends with something playable                                                     |
