@@ -48,3 +48,10 @@ npm run check         # lint + format + typecheck + tests (what CI runs)
 npm run simbatch -- --a hard --b medium --n 200   # balance report
 npm run build         # static web build in apps/web/dist
 ```
+
+## Deployment
+
+The web build deploys to **Vercel** through its GitHub integration: pushes to `master` go
+to production, and every pull request gets a preview URL. `vercel.json` holds the build
+settings (install `npm ci`, build `npm run build`, output `apps/web/dist`), so the Vercel
+project needs no extra configuration.

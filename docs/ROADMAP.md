@@ -65,7 +65,7 @@ Sizes are relative: S < M < L.
 - **Done when:** a 2000-match batch runs cleanly, the balance targets are met, and Watch
   mode is fun to watch.
 
-**→ MVP release:** deploy the web build to a static host.
+**→ MVP release:** deploy the web build to Vercel (production from `master`, a preview for every PR).
 
 ### M4 — Polish (M)
 
@@ -100,5 +100,5 @@ a level editor, online spectating.
 | D4  | Existing NestJS scaffold | ✅ **Removed in M0.** Written from scratch; only the idea stays                                         |
 | D5  | Engine                   | ✅ **TypeScript + Phaser + custom sim + Capacitor**                                                     |
 | D6  | Art direction            | ✅ **Pixel art.** See `GAME_DESIGN.md` §15. All MVP art is drawn in code; no external assets are needed |
-| D7  | Web hosting              | ✅ (default) **GitHub Pages** via GitHub Actions                                                        |
+| D7  | Web hosting              | ✅ **Vercel**: production from `master`, preview deployments for every pull request                     |
 | D8  | Name                     | ✅ (default) **"Deadminton"**, still a working title                                                    |
