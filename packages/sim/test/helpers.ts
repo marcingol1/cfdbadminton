@@ -1,5 +1,5 @@
 import { NEUTRAL_INPUT, createMatch, step } from '../src';
-import type { InputFrame, MatchState, PlayerId, SimEvent } from '../src';
+import type { InputFrame, MatchConfig, MatchState, PlayerId, SimEvent } from '../src';
 
 export const idle: readonly [InputFrame, InputFrame] = [NEUTRAL_INPUT, NEUTRAL_INPUT];
 
@@ -8,11 +8,12 @@ export function rallyState(
   shuttle: { x: number; y: number; vx: number; vy: number },
   lastHitter: PlayerId,
   seed = 1,
+  config: Partial<MatchConfig> = { scheme: 'purist' },
 ): MatchState {
-  const s = createMatch({}, seed);
+  const s = createMatch(config, seed);
   s.phase = 'rally';
   s.wind = 0;
-  s.shuttle = { mode: 'flight', ...shuttle };
+  s.shuttle = { ...s.shuttle, mode: 'flight', weapon: null, ...shuttle };
   s.rally = { hits: 2, isServe: false, lastHitter, ticksSinceHit: 30, serveClock: 0 };
   return s;
 }

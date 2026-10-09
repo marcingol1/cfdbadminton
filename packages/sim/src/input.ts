@@ -3,6 +3,12 @@ import type { InputFrame, ShotIntent } from './types';
 export const Buttons = {
   JUMP: 1,
   HIT: 2,
+  /** Throw a mine (rally) or fire / confirm (Revenge Turn). */
+  FIRE: 4,
+  WEAPON_NEXT: 8,
+  WEAPON_PREV: 16,
+  /** Cycle the Frag Shuttle fuse, 1..5 s. */
+  FUSE: 32,
 } as const;
 
 export const AXIS_MAX = 127;

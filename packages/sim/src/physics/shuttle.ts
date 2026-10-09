@@ -17,6 +17,10 @@ export interface FlightEnv {
   /** Horizontal wind, m/s. */
   wind: number;
   ceiling: number | null;
+  /** Arena walls end the flight at ±WALL_X; without them the shuttle flies on (and lands out). */
+  walls?: boolean;
+  /** Floor height under x (craters); flat floor at 0 when omitted. */
+  groundAt?: (x: number) => number;
 }
 
 export type FlightEvent =
@@ -62,17 +66,18 @@ export function advanceFlight(b: FlightBody, env: FlightEnv, dt = SUBSTEP_DT): F
       return { kind: 'net', y: yCross };
     }
   }
-  if (b.y <= 0) {
-    const t = py / (py - b.y);
-    b.x = px + (b.x - px) * t;
-    b.y = 0;
+  const floor = env.groundAt ? env.groundAt(b.x) : 0;
+  if (b.y <= floor) {
+    const t = py - b.y > 0 ? (py - floor) / (py - b.y) : 1;
+    b.x = px + (b.x - px) * (t < 0 ? 0 : t > 1 ? 1 : t);
+    b.y = floor;
     return { kind: 'floor', x: b.x };
   }
   if (env.ceiling !== null && b.y >= env.ceiling) {
     b.y = env.ceiling;
     return { kind: 'ceiling', x: b.x };
   }
-  if (b.x <= -WALL_X || b.x >= WALL_X) {
+  if (env.walls !== false && (b.x <= -WALL_X || b.x >= WALL_X)) {
     b.x = b.x < 0 ? -WALL_X : WALL_X;
     return { kind: 'wall', x: b.x };
   }

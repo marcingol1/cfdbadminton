@@ -36,6 +36,7 @@ const REASON_TEXT: Record<PointReason, string> = {
   body: 'BODY HIT!',
   ceiling: 'CEILING!',
   serveShort: 'SHORT SERVE!',
+  netTouch: 'TOUCHED THE NET!',
 };
 
 const DIFFS: Difficulty[] = ['easy', 'medium', 'hard'];
