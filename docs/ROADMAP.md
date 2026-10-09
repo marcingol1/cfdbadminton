@@ -18,7 +18,7 @@ A web game, playable in the browser, with these features:
 Each milestone ends with something **playable** and a passing CI run.
 Sizes are relative: S < M < L.
 
-### M0 — Foundations (S)
+### M0 — Foundations (S) — ✅ done
 
 - Remove the 2020 Nest scaffold. Set up an npm workspaces monorepo: `packages/sim`,
   `packages/bots`, `apps/web`, `tools/simbatch`.
@@ -28,7 +28,7 @@ Sizes are relative: S < M < L.
   snapshot/restore round-trip test.
 - **Done when:** `npm run dev` shows an empty court rendered from sim state, and CI is green.
 
-### M1 — "Just Badminton" (L) ← the most important milestone
+### M1 — "Just Badminton" (L) ← the most important milestone — 🟡 built, awaiting playtest
 
 - Court, net, the Hall arena, shuttle physics with drag and wind, player movement and
   jumping, the hit model with shot types and timing quality.
