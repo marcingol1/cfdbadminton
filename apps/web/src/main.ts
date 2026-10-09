@@ -16,6 +16,7 @@ import { TouchDevice, isTouchDevice } from './input/touch';
 import { MatchScene } from './render/scene';
 import type { SceneHost } from './render/scene';
 import { VIEW_H, VIEW_W } from './render/view';
+import type { KeyLayout } from './ui/keyhints';
 import { Ui, setPath } from './ui/ui';
 import type { UiSettings } from './ui/ui';
 
@@ -31,6 +32,7 @@ function loadSettings(): UiSettings {
     arena: 'hall',
     bestOf: 1,
     assistMarker: true,
+    keyHints: true,
     muted: false,
   };
   try {
@@ -240,13 +242,26 @@ class App implements SceneHost {
       }
     }
     if (session.mode !== 'attract') {
-      this.ui.update(session, events, deltaMs);
+      this.ui.update(session, events, deltaMs, this.keyLayouts(session));
       if (session.state.phase === 'matchOver' && this.ui.current === 'hud') {
         this.ui.show('over', session);
         this.touch?.setVisible(false);
       }
     }
     return events;
+  }
+
+  /** Which controls each human is using, for the on-screen key hints. */
+  private keyLayouts(session: MatchSession): [KeyLayout | null, KeyLayout | null] {
+    const pad = (i: number) => new GamepadDevice(i).connected();
+    switch (session.mode) {
+      case 'vsBot':
+        return [this.touch ? 'touch' : pad(0) ? 'gamepad' : 'solo', null];
+      case 'local2p':
+        return [pad(0) ? 'gamepad' : 'p1', pad(1) ? 'gamepad' : 'p2'];
+      default:
+        return [null, null];
+    }
   }
 
   private playSound(e: SimEvent, session: MatchSession): void {

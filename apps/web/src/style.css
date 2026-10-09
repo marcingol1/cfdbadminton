@@ -313,6 +313,35 @@ h2.p2 {
   text-shadow: calc(var(--u) * 1) calc(var(--u) * 1) 0 var(--ink);
 }
 
+.side .row.keys {
+  flex-wrap: wrap;
+  max-width: calc(var(--u) * 175);
+  gap: calc(var(--u) * 1) calc(var(--u) * 3);
+  font-size: calc(var(--u) * 3.5);
+  color: var(--text);
+}
+
+.side.p2 .row.keys {
+  justify-content: flex-end;
+}
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.5);
+  background: rgb(24 20 37 / 80%);
+  white-space: nowrap;
+}
+
+.key kbd {
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 1.5);
+  font: inherit;
+  color: var(--ink);
+  background: var(--accent);
+  box-shadow: 0 calc(var(--u) * 1) 0 #c28569;
+}
+
 .weapon {
   padding: calc(var(--u) * 1) calc(var(--u) * 2);
   background: var(--ink);
@@ -342,7 +371,7 @@ h2.p2 {
 
 .revenge {
   position: absolute;
-  top: calc(var(--u) * 52);
+  top: calc(var(--u) * 78);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -467,7 +496,7 @@ h2.p2 {
 
 .banner {
   position: absolute;
-  top: 34%;
+  top: 44%;
   left: 50%;
   transform: translateX(-50%);
   padding: calc(var(--u) * 4) calc(var(--u) * 8);
@@ -501,7 +530,7 @@ h2.p2 {
 
 .hint {
   position: absolute;
-  top: calc(var(--u) * 40);
+  top: calc(var(--u) * 66);
   left: 50%;
   transform: translateX(-50%);
   padding: calc(var(--u) * 2) calc(var(--u) * 4);

@@ -13,6 +13,8 @@ import type {
 } from '@deadminton/sim';
 import type { MatchSession } from '../game/session';
 import { VIEW_H, VIEW_W, sx, sy } from '../render/view';
+import { keyHints } from './keyhints';
+import type { KeyLayout } from './keyhints';
 
 export type Screen = 'menu' | 'help' | 'hud' | 'pause' | 'over';
 
@@ -25,6 +27,7 @@ export interface UiSettings {
   arena: ArenaId;
   bestOf: 1 | 3;
   assistMarker: boolean;
+  keyHints: boolean;
   muted: boolean;
 }
 
@@ -228,6 +231,11 @@ export class Ui {
         this.settings.muted = !this.settings.muted;
         this.actions.settingsChanged();
         return this.renderPause();
+      case 'keyHints':
+        this.settings.keyHints = !this.settings.keyHints;
+        this.hudKey = '';
+        this.actions.settingsChanged();
+        return this.renderPause();
       case 'watchPause':
         return this.actions.togglePauseWatch();
       case 'watchStep':
@@ -292,6 +300,7 @@ export class Ui {
       <button class="big" data-action="menu">MENU</button>
       <div class="chips">
         <button class="chip${s.assistMarker ? ' on' : ''}" data-action="marker">LANDING MARKER</button>
+        <button class="chip${s.keyHints ? ' on' : ''}" data-action="keyHints">KEY HINTS</button>
         <button class="chip${s.muted ? '' : ' on'}" data-action="sound">SOUND</button>
       </div>`;
   }
@@ -349,7 +358,12 @@ export class Ui {
   }
 
   /** Called every frame while a match is shown. */
-  update(session: MatchSession, events: SimEvent[], deltaMs: number): void {
+  update(
+    session: MatchSession,
+    events: SimEvent[],
+    deltaMs: number,
+    layouts: [KeyLayout | null, KeyLayout | null],
+  ): void {
     const st = session.state;
     const name = (id: 0 | 1) => session.controllers[id].label;
     for (const e of events) {
@@ -415,6 +429,10 @@ export class Ui {
       st.phase,
       st.suddenDeath,
       ...pl.map((p) => `${p.hp}/${p.shield}/${weaponChip(st, p)}`),
+      this.settings.keyHints,
+      ...layouts,
+      st.revenge ? `${st.revenge.shooter}${st.revenge.fired}` : '-',
+      ...pl.map((p) => `${p.rallyWeapon}${p.dead}`),
     ].join('|');
     if (key !== this.hudKey) {
       this.hudKey = key;
@@ -426,14 +444,20 @@ export class Ui {
           : '';
       const chipHtml = (p: PlayerState) =>
         weapons ? `<span class="weapon">${weaponChip(st, p)}</span>` : '';
+      const keys = (id: 0 | 1) => {
+        const layout = layouts[id];
+        if (!layout || !this.settings.keyHints) return '';
+        const html = keyHints(st, id, layout);
+        return html ? `<div class="row keys">${html}</div>` : '';
+      };
       const games =
         st.config.bestOf > 1
           ? `<span class="games">${'●'.repeat(st.games[0])}${'○'.repeat(2 - st.games[0])} GAMES ${'○'.repeat(2 - st.games[1])}${'●'.repeat(st.games[1])}</span>`
           : '';
       this.hudEl.innerHTML = `
-        <div class="side p1"><div class="row"><span class="name">${name(0)}</span>${serving(0)}<span class="score">${st.score[0]}</span></div><div class="row sub">${hp(pl[0])}${chipHtml(pl[0])}</div></div>
+        <div class="side p1"><div class="row"><span class="name">${name(0)}</span>${serving(0)}<span class="score">${st.score[0]}</span></div><div class="row sub">${hp(pl[0])}${chipHtml(pl[0])}</div>${keys(0)}</div>
         <div class="center"><div class="wind" title="wind">WIND <b>${arrows}</b> ${Math.abs(wind).toFixed(1)}</div>${games}${st.suddenDeath ? '<span class="sudden">SUDDEN DEATH</span>' : ''}</div>
-        <div class="side p2"><div class="row"><span class="score">${st.score[1]}</span>${serving(1)}<span class="name">${name(1)}</span></div><div class="row sub">${chipHtml(pl[1])}${hp(pl[1])}</div></div>`;
+        <div class="side p2"><div class="row"><span class="score">${st.score[1]}</span>${serving(1)}<span class="name">${name(1)}</span></div><div class="row sub">${chipHtml(pl[1])}${hp(pl[1])}</div>${keys(1)}</div>`;
       if (session.mode === 'watch') this.renderWatch(session);
     }
 
@@ -455,7 +479,12 @@ export class Ui {
 
     const hint = this.root.querySelector<HTMLElement>('.hint')!;
     const humanServing = st.phase === 'serve' && session.controllers[st.server].kind === 'human';
-    const humanRevenge = rv && !rv.fired && session.controllers[rv.shooter].kind === 'human';
+    // With key hints on, the shooter's own hint row already explains aiming.
+    const humanRevenge =
+      rv &&
+      !rv.fired &&
+      session.controllers[rv.shooter].kind === 'human' &&
+      !this.settings.keyHints;
     hint.hidden = !((humanServing || humanRevenge) && this.screen === 'hud');
     if (!hint.hidden) {
       const who = (id: 0 | 1) => (session.mode === 'local2p' ? `${name(id)}: ` : '');
