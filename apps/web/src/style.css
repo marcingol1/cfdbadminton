@@ -1,0 +1,479 @@
+:root {
+  --u: 2px;
+  --ink: #181425;
+  --panel: #262b44;
+  --line: #5a6988;
+  --text: #ffffff;
+  --muted: #8b9bb4;
+  --p1: #e43b44;
+  --p2: #2ce8f5;
+  --accent: #feae34;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--ink);
+  color: var(--text);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  font-family: 'Press Start 2P', ui-monospace, monospace;
+}
+
+#stage {
+  position: relative;
+  overflow: hidden;
+  font-size: calc(var(--u) * 6);
+}
+
+#game,
+#game canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- Menus ---------- */
+.menu,
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 5);
+  background: rgb(24 20 37 / 72%);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: calc(var(--u) * 26);
+  font-weight: normal;
+  letter-spacing: calc(var(--u) * 1);
+  color: var(--text);
+  text-shadow:
+    calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--p1),
+    calc(var(--u) * 4) calc(var(--u) * 4) 0 var(--ink);
+}
+
+.title span {
+  color: var(--accent);
+}
+
+.tagline {
+  margin: calc(var(--u) * -2) 0 calc(var(--u) * 2);
+  color: var(--muted);
+  font-size: calc(var(--u) * 6);
+}
+
+h2 {
+  margin: 0;
+  font-size: calc(var(--u) * 14);
+  font-weight: normal;
+}
+
+h2.p1 {
+  color: var(--p1);
+}
+
+h2.p2 {
+  color: var(--p2);
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: calc(var(--u) * 4) calc(var(--u) * 6);
+  align-items: center;
+}
+
+.big {
+  min-width: calc(var(--u) * 120);
+  padding: calc(var(--u) * 4) calc(var(--u) * 6);
+  background: var(--panel);
+  border: calc(var(--u) * 1) solid var(--line);
+  box-shadow: 0 calc(var(--u) * 2) 0 var(--ink);
+  font-size: calc(var(--u) * 7);
+}
+
+.big:hover,
+.big:focus-visible {
+  background: var(--p1);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.chips {
+  display: flex;
+  gap: calc(var(--u) * 2);
+  align-items: center;
+  justify-content: center;
+}
+
+.chip {
+  padding: calc(var(--u) * 2) calc(var(--u) * 3);
+  background: var(--ink);
+  border: calc(var(--u) * 1) solid var(--line);
+  font-size: calc(var(--u) * 5);
+  color: var(--muted);
+}
+
+.chip.on {
+  color: var(--ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.vs,
+.label,
+.small-note,
+.footer,
+.seed {
+  color: var(--muted);
+  font-size: calc(var(--u) * 5);
+}
+
+.link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: calc(var(--u) * 6);
+  text-decoration: underline;
+}
+
+.footer {
+  position: absolute;
+  bottom: calc(var(--u) * 4);
+  margin: 0;
+}
+
+.help {
+  max-width: calc(var(--u) * 360);
+  text-align: left;
+  font-size: calc(var(--u) * 5);
+  line-height: 1.7;
+}
+
+.help p {
+  margin: 0 0 calc(var(--u) * 4);
+}
+
+.help b {
+  color: var(--accent);
+  font-weight: normal;
+}
+
+.final {
+  margin: 0;
+  font-size: calc(var(--u) * 12);
+}
+
+.stats {
+  border-collapse: collapse;
+  font-size: calc(var(--u) * 5);
+  color: var(--muted);
+}
+
+.stats td,
+.stats th {
+  padding: calc(var(--u) * 1) calc(var(--u) * 6);
+  font-weight: normal;
+}
+
+.stats td:first-child {
+  color: var(--p1);
+}
+
+.stats td:last-child {
+  color: var(--p2);
+}
+
+.stats td[colspan] {
+  color: var(--muted);
+  padding-top: calc(var(--u) * 3);
+}
+
+/* ---------- HUD ---------- */
+.hud {
+  position: absolute;
+  top: calc(var(--u) * 14);
+  left: calc(var(--u) * 36);
+  right: calc(var(--u) * 36);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 4);
+}
+
+.side .name {
+  font-size: calc(var(--u) * 5);
+  padding: calc(var(--u) * 2) calc(var(--u) * 3);
+  background: var(--ink);
+}
+
+.side.p1 .name {
+  border-left: calc(var(--u) * 2) solid var(--p1);
+}
+
+.side.p2 .name {
+  border-right: calc(var(--u) * 2) solid var(--p2);
+}
+
+.side .score {
+  font-size: calc(var(--u) * 16);
+  text-shadow: calc(var(--u) * 1) calc(var(--u) * 1) 0 var(--ink);
+}
+
+.side.p1 .score {
+  color: var(--p1);
+}
+
+.side.p2 .score {
+  color: var(--p2);
+}
+
+.serve-dot {
+  width: calc(var(--u) * 4);
+  height: calc(var(--u) * 4);
+  background: var(--text);
+  box-shadow: 0 0 0 calc(var(--u) * 1) var(--accent);
+}
+
+.wind {
+  font-size: calc(var(--u) * 5);
+  padding: calc(var(--u) * 2) calc(var(--u) * 3);
+  background: var(--ink);
+  color: var(--muted);
+}
+
+.wind b {
+  color: var(--accent);
+  font-weight: normal;
+}
+
+.banner {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: calc(var(--u) * 4) calc(var(--u) * 8);
+  background: var(--ink);
+  font-size: calc(var(--u) * 9);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: pop 160ms steps(3);
+}
+
+.banner.p1 {
+  color: var(--p1);
+  border-bottom: calc(var(--u) * 2) solid var(--p1);
+}
+
+.banner.p2 {
+  color: var(--p2);
+  border-bottom: calc(var(--u) * 2) solid var(--p2);
+}
+
+@keyframes pop {
+  from {
+    transform: translateX(-50%) scale(0.6);
+  }
+}
+
+.hint {
+  position: absolute;
+  top: calc(var(--u) * 40);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: calc(var(--u) * 2) calc(var(--u) * 4);
+  background: var(--ink);
+  color: var(--accent);
+  font-size: calc(var(--u) * 5);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.watchbar {
+  white-space: nowrap;
+  position: absolute;
+  bottom: calc(var(--u) * 2);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: calc(var(--u) * 2);
+  align-items: center;
+  padding: calc(var(--u) * 2);
+  background: rgb(24 20 37 / 85%);
+}
+
+.pause-btn {
+  position: absolute;
+  top: calc(var(--u) * 14);
+  right: calc(var(--u) * 4);
+  width: calc(var(--u) * 20);
+  height: calc(var(--u) * 16);
+  background: var(--ink);
+  border: calc(var(--u) * 1) solid var(--line);
+  font-size: calc(var(--u) * 5);
+}
+
+.tuning {
+  position: absolute;
+  top: calc(var(--u) * 30);
+  right: calc(var(--u) * 4);
+  width: calc(var(--u) * 150);
+  padding: calc(var(--u) * 4);
+  background: rgb(24 20 37 / 92%);
+  border: calc(var(--u) * 1) solid var(--line);
+  font-size: calc(var(--u) * 4);
+}
+
+.tuning h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 calc(var(--u) * 3);
+  font-size: calc(var(--u) * 5);
+  font-weight: normal;
+}
+
+.tuning label {
+  display: block;
+  margin-bottom: calc(var(--u) * 3);
+  color: var(--muted);
+}
+
+.tuning output {
+  float: right;
+  color: var(--accent);
+}
+
+.tuning input {
+  width: 100%;
+}
+
+/* ---------- Touch controls ---------- */
+.touch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.touch-stick-zone {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 45%;
+  height: 70%;
+  pointer-events: auto;
+}
+
+.touch-base {
+  position: absolute;
+  left: 22%;
+  top: 60%;
+  width: calc(var(--u) * 44);
+  height: calc(var(--u) * 44);
+  margin: calc(var(--u) * -22) 0 0 calc(var(--u) * -22);
+  border: calc(var(--u) * 1) solid rgb(255 255 255 / 25%);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.touch-base.active {
+  opacity: 1;
+}
+
+.touch-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--u) * 18);
+  height: calc(var(--u) * 18);
+  margin: calc(var(--u) * -9) 0 0 calc(var(--u) * -9);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 35%);
+}
+
+.touch-btn {
+  position: absolute;
+  pointer-events: auto;
+  border-radius: 50%;
+  border: calc(var(--u) * 1) solid rgb(255 255 255 / 30%);
+  background: rgb(24 20 37 / 45%);
+  font-size: calc(var(--u) * 5);
+}
+
+.touch-btn.pressed {
+  background: rgb(254 174 52 / 60%);
+}
+
+.touch-hit {
+  right: calc(var(--u) * 10);
+  bottom: calc(var(--u) * 20);
+  width: calc(var(--u) * 46);
+  height: calc(var(--u) * 46);
+}
+
+.touch-jump {
+  right: calc(var(--u) * 62);
+  bottom: calc(var(--u) * 10);
+  width: calc(var(--u) * 32);
+  height: calc(var(--u) * 32);
+}
+
+.rotate {
+  display: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: var(--ink);
+    font-size: 14px;
+    z-index: 10;
+  }
+}
