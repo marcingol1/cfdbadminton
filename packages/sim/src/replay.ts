@@ -22,6 +22,8 @@ export interface Replay {
   ticks: number;
   /** hashState() after the last recorded tick. */
   finalHash: number;
+  /** Client extras such as the players' looks. Never used by playback. */
+  extras?: Record<string, unknown>;
 }
 
 type Pair = readonly [InputFrame, InputFrame];

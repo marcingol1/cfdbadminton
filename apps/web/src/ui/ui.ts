@@ -17,11 +17,22 @@ import { resolveKeys } from '../input/keyboard';
 import type { KeyOverrides } from '../input/keyboard';
 import { VIEW_H, VIEW_W, sx, sy } from '../render/view';
 import { keyHints } from './keyhints';
+import type { Look } from '../render/looks';
+import { LockerPanel } from './locker';
 import { SettingsPanel } from './settings';
 import type { KeyLayout } from './keyhints';
 
 export type Screen =
-  'menu' | 'help' | 'replays' | 'settings' | 'challenges' | 'hud' | 'pause' | 'over' | 'done';
+  | 'menu'
+  | 'help'
+  | 'replays'
+  | 'settings'
+  | 'challenges'
+  | 'locker'
+  | 'hud'
+  | 'pause'
+  | 'over'
+  | 'done';
 
 export interface UiSettings {
   difficulty: Difficulty;
@@ -62,6 +73,8 @@ export interface UiSettings {
   haptics: boolean;
   /** Low detail hides the crowd and thins out particles (slow phones). */
   detail: 'high' | 'low';
+  /** How player 1 (you) and player 2 (local 2P) look, and their names. */
+  looks: [Look, Look];
 }
 
 export interface UiActions {
@@ -177,6 +190,7 @@ export class Ui {
   private bannerTimer = 0;
   private hudKey = '';
   private readonly settingsPanel: SettingsPanel;
+  private readonly locker: LockerPanel;
   /** Settings opened from the pause menu go back there (and keep the match visible). */
   private settingsFromPause = false;
   private lastSession: MatchSession | undefined;
@@ -217,6 +231,11 @@ export class Ui {
       () => this.show(this.settingsFromPause ? 'pause' : 'menu', this.lastSession),
       touch,
     );
+    this.locker = new LockerPanel(
+      settings,
+      () => actions.settingsChanged(),
+      () => this.show('menu'),
+    );
     root.addEventListener('click', (e) => this.onClick(e));
     root.querySelector('.pause-btn')!.addEventListener('click', () => this.actions.pause());
     this.renderMenu();
@@ -228,6 +247,7 @@ export class Ui {
 
   show(screen: Screen, session?: MatchSession): void {
     if (this.screen === 'settings' && screen !== 'settings') this.settingsPanel.close();
+    if (this.screen === 'locker' && screen !== 'locker') this.locker.close();
     if (screen === 'settings') this.settingsFromPause = this.screen === 'pause';
     if (session) this.lastSession = session;
     this.screen = screen;
@@ -238,6 +258,7 @@ export class Ui {
       screen !== 'help' &&
       screen !== 'replays' &&
       screen !== 'challenges' &&
+      screen !== 'locker' &&
       !(screen === 'settings' && !pauseSettings);
     this.hudEl.hidden = !(inMatch || screen === 'done');
     this.overlayEl.hidden =
@@ -261,6 +282,7 @@ export class Ui {
     if (screen === 'pause') this.renderPause();
     if (screen === 'over' && session) this.renderOver(session);
     if (screen === 'challenges') this.renderChallenges();
+    if (screen === 'locker') this.locker.render(this.menuEl);
     if (screen === 'done') this.renderDone();
     if (spectating && session) this.renderWatch(session);
     this.hudKey = '';
@@ -277,6 +299,7 @@ export class Ui {
       case 'help':
       case 'replays':
       case 'challenges':
+      case 'locker':
         this.show('menu');
         return true;
       case 'pause':
@@ -333,6 +356,8 @@ export class Ui {
         return this.show('replays');
       case 'settings':
         return this.show('settings');
+      case 'locker':
+        return this.show('locker');
       case 'tutorial':
         return this.actions.tutorial();
       case 'challenges':
@@ -414,7 +439,7 @@ export class Ui {
         <span class="label">REVENGE</span>
         <div class="chips">${chip('revenge', 'off', 'OFF', !s.revenge)}${chip('revenge', 'on', 'ON · RANDOM', s.revenge)}</div>
       </div>
-      <div class="chips links"><button class="link" data-action="tutorial">TUTORIAL</button><button class="link" data-action="challenges">CHALLENGES</button><button class="link" data-action="help">HOW TO PLAY</button><button class="link" data-action="replays">REPLAYS</button><button class="link" data-action="settings">SETTINGS</button></div>
+      <div class="chips links"><button class="link" data-action="locker">LOCKER</button><button class="link" data-action="tutorial">TUTORIAL</button><button class="link" data-action="challenges">CHALLENGES</button><button class="link" data-action="help">HOW TO PLAY</button><button class="link" data-action="replays">REPLAYS</button><button class="link" data-action="settings">SETTINGS</button></div>
       <p class="footer">M4 preview · online play arrives in M5</p>`;
   }
 

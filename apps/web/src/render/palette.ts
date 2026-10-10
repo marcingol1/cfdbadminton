@@ -38,11 +38,20 @@ export interface TeamColors {
   shirt: number;
   shirtShade: number;
   shorts: number;
-  band: number;
+  /** Headband color, or null for none. */
+  band: number | null;
   hair: number;
   racket: number;
+  skin: number;
+  skinDark: number;
+  hairStyle: 'short' | 'long' | 'spiky' | 'mohawk' | 'ponytail' | 'bald';
+  extra: 'none' | 'glasses' | 'cap' | 'wristbands';
 }
 
+/**
+ * How each side is drawn right now. The app fills these from the players' looks at the
+ * start of every match (render/looks.ts); the canvas and the crowd read them every frame.
+ */
 export const TEAMS: [TeamColors, TeamColors] = [
   {
     shirt: C.brightRed,
@@ -51,24 +60,29 @@ export const TEAMS: [TeamColors, TeamColors] = [
     band: C.yellow,
     hair: C.darkBrown,
     racket: C.orange,
+    skin: C.skin,
+    skinDark: C.skinDark,
+    hairStyle: 'short',
+    extra: 'none',
   },
-  { shirt: C.blue, shirtShade: C.navy, shorts: C.ink, band: C.cyan, hair: C.black, racket: C.cyan },
-];
-
-const STANDARD: [TeamColors, TeamColors] = [{ ...TEAMS[0] }, { ...TEAMS[1] }];
-
-/** Orange vs cyan reads apart under every common color vision deficiency. */
-const COLORBLIND: [TeamColors, TeamColors] = [
   {
-    shirt: C.orange,
-    shirtShade: C.darkRed,
-    shorts: C.darkBrown,
-    band: C.paleYellow,
-    hair: C.darkBrown,
-    racket: C.yellow,
+    shirt: C.blue,
+    shirtShade: C.navy,
+    shorts: C.ink,
+    band: C.cyan,
+    hair: C.black,
+    racket: C.cyan,
+    skin: C.beige,
+    skinDark: C.rose,
+    hairStyle: 'short',
+    extra: 'none',
   },
-  { ...STANDARD[1] },
 ];
+
+export function setTeams(teams: [TeamColors, TeamColors]): void {
+  Object.assign(TEAMS[0], teams[0]);
+  Object.assign(TEAMS[1], teams[1]);
+}
 
 /** HP bar colors (healthy, hurt, critical). */
 export const HP_COLORS = {
@@ -79,11 +93,8 @@ export const HP_COLORS = {
 
 export type ColorMode = 'standard' | 'colorblind';
 
-/** Switches team and HP colors everywhere (canvas and HTML). */
+/** Switches HP and HUD colors (the kits follow the players' looks, see looks.ts). */
 export function setColorMode(mode: ColorMode): void {
-  const teams = mode === 'colorblind' ? COLORBLIND : STANDARD;
-  Object.assign(TEAMS[0], teams[0]);
-  Object.assign(TEAMS[1], teams[1]);
   Object.assign(
     HP_COLORS,
     mode === 'colorblind'

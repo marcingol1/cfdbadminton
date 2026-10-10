@@ -977,3 +977,83 @@ h2 .count {
   color: var(--accent);
   font-size: 0.6em;
 }
+
+/* Locker (player looks). */
+.locker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 4);
+}
+
+.locker h2 {
+  margin: 0;
+}
+
+.locker-body {
+  display: flex;
+  gap: calc(var(--u) * 10);
+  align-items: center;
+}
+
+.locker .preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+}
+
+.locker canvas {
+  width: calc(var(--u) * 96);
+  height: calc(var(--u) * 96);
+  image-rendering: pixelated;
+  background: rgb(24 20 37 / 60%);
+  border: calc(var(--u) * 1) solid var(--line);
+}
+
+.locker input.name {
+  width: calc(var(--u) * 96);
+  padding: calc(var(--u) * 2);
+  background: var(--ink);
+  border: calc(var(--u) * 1) solid var(--line);
+  color: var(--text);
+  font: inherit;
+  font-size: calc(var(--u) * 6);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.locker-grid {
+  min-height: 0;
+  gap: calc(var(--u) * 2) calc(var(--u) * 4);
+}
+
+.locker-grid .chips {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  max-width: calc(var(--u) * 190);
+}
+
+.swatch {
+  width: calc(var(--u) * 10);
+  height: calc(var(--u) * 10);
+  padding: 0;
+  border: calc(var(--u) * 1) solid var(--ink);
+  outline: calc(var(--u) * 1) solid var(--line);
+  font-size: calc(var(--u) * 5);
+  color: var(--muted);
+}
+
+.swatch.none {
+  background: var(--ink);
+}
+
+.swatch.on {
+  outline: calc(var(--u) * 1) solid var(--accent);
+  box-shadow: 0 0 0 calc(var(--u) * 1) var(--accent);
+}
+
+.locker-grid .chip {
+  padding: calc(var(--u) * 1) calc(var(--u) * 2);
+  font-size: calc(var(--u) * 4);
+}

@@ -1,5 +1,5 @@
 import type { PlayerState } from '@deadminton/sim';
-import type { Painter } from './painter';
+import type { PixelPainter } from './painter';
 import { C } from './palette';
 import type { TeamColors } from './palette';
 
@@ -102,7 +102,7 @@ function joint(a: V, t: V, l1: number, l2: number, bend: number): V {
  * swinging all come from the same pose math. Coordinates are local (x toward the net,
  * y up from the feet) and mirrored by facing.
  */
-export function drawPlayer(p: Painter, pose: PlayerPose, team: TeamColors): RacketPoint {
+export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors): RacketPoint {
   const pl = pose.player;
   const f = pl.facing;
   const ox = pose.x - f * pose.flinch;
@@ -117,7 +117,7 @@ export function drawPlayer(p: Painter, pose: PlayerPose, team: TeamColors): Rack
   const rect = (dx: number, dy: number, w: number, h: number, c: number) =>
     p.rect(f === 1 ? ox + dx : ox - dx - w + 1, oy - dy - h, w, h, c);
 
-  const skin = pose.hurtFlash ? C.white : C.skin;
+  const skin = pose.hurtFlash ? C.white : team.skin;
   const airborne = !pl.grounded;
   const swinging = pose.swing >= 0;
   const t = pose.swing;
@@ -161,8 +161,8 @@ export function drawPlayer(p: Painter, pose: PlayerPose, team: TeamColors): Rack
   const frontKnee = joint({ x: 1, y: hipY }, front, THIGH, SHIN, 1);
 
   // Back leg first (behind the body), with its shoe.
-  line({ x: -1, y: hipY }, backKnee, C.skinDark, 3);
-  line(backKnee, { x: back.x, y: back.y + 2 }, C.skinDark, 3);
+  line({ x: -1, y: hipY }, backKnee, team.skinDark, 3);
+  line(backKnee, { x: back.x, y: back.y + 2 }, team.skinDark, 3);
   rect(Math.round(back.x) - 2, Math.round(back.y), 5, 2, C.white);
   rect(Math.round(back.x) - 2, Math.round(back.y), 5, 1, C.slate);
 
@@ -197,8 +197,8 @@ export function drawPlayer(p: Painter, pose: PlayerPose, team: TeamColors): Rack
     y: backShoulder.y + Math.sin(backAng * DEG) * (UPPER_ARM + FOREARM) * backExt,
   };
   const backElbow = joint(backShoulder, backHand, UPPER_ARM, FOREARM, -1);
-  line(backShoulder, backElbow, C.skinDark, 2);
-  line(backElbow, backHand, C.skinDark, 2);
+  line(backShoulder, backElbow, team.skinDark, 2);
+  line(backElbow, backHand, team.skinDark, 2);
 
   // Shorts and torso, drawn in bands so the lean bends the body instead of tilting a box.
   const h = Math.round(hipY);
@@ -213,17 +213,15 @@ export function drawPlayer(p: Painter, pose: PlayerPose, team: TeamColors): Rack
     rect(-5 + dx, y0, 2, y1 - y0, team.shirtShade);
   }
 
-  // Head: hair, face, headband, eye.
+  // Head: face, hair (by style), headband or cap, eye, glasses.
   const hx = lean + (droop ? 1 : 0);
   const hy = top + 1 - droop;
-  rect(-4 + hx, hy, 9, 9, skin);
-  rect(-5 + hx, hy + 6, 10, 3, team.hair);
-  rect(-5 + hx, hy + 1, 3, 6, team.hair);
-  rect(-4 + hx, hy + 5, 9, 1, team.band);
-  if (stunned || pose.hurtFlash) rect(1 + hx, hy + 3, 3, 1, C.black);
-  else rect(2 + hx, hy + 3 - (droop ? 1 : 0), 1, 1, C.black);
-  if (pose.mood === 'win') rect(1 + hx, hy, 3, 1, C.darkBrown);
-  else rect(3 + hx, hy, 2, 1, C.skinDark);
+  drawHead(rect, team, skin, hx, hy, {
+    squint: stunned || pose.hurtFlash,
+    droop: droop > 0,
+    grin: pose.mood === 'win',
+    tail: running ? Math.round(Math.sin(phase * 2)) : 0,
+  });
 
   // Front leg over the shorts' edge, with its shoe.
   line({ x: 1, y: hipY }, frontKnee, skin, 3);
@@ -272,6 +270,11 @@ export function drawPlayer(p: Painter, pose: PlayerPose, team: TeamColors): Rack
   const elbow = joint(shoulder, hand, UPPER_ARM, FOREARM, bend);
   line(shoulder, elbow, skin, 2);
   line(elbow, hand, skin, 2);
+  if (team.extra === 'wristbands') {
+    const wb = team.band ?? team.shirt;
+    p.rect(X(hand) - 1, Y(hand) - 1, 2, 2, wb);
+    p.rect(X(backHand) - 1, Y(backHand) - 1, 2, 2, wb);
+  }
 
   const a = racketAng * DEG;
   const dir: V = { x: Math.cos(a), y: Math.sin(a) };
@@ -294,6 +297,66 @@ export function drawPlayer(p: Painter, pose: PlayerPose, team: TeamColors): Rack
   return { x: hx2, y: hy2 };
 }
 
+type LocalRect = (dx: number, dy: number, w: number, h: number, c: number) => void;
+
+/** The head in local coordinates (x toward the net), bottom-left at (hx - 4, hy). */
+function drawHead(
+  rect: LocalRect,
+  team: TeamColors,
+  skin: number,
+  hx: number,
+  hy: number,
+  o: { squint: boolean; droop: boolean; grin: boolean; tail: number },
+): void {
+  rect(-4 + hx, hy, 9, 9, skin);
+  const hair = team.hair;
+  switch (team.hairStyle) {
+    case 'short':
+      rect(-5 + hx, hy + 6, 10, 3, hair);
+      rect(-5 + hx, hy + 1, 3, 6, hair);
+      break;
+    case 'long':
+      rect(-5 + hx, hy + 6, 10, 3, hair);
+      rect(-6 + hx, hy - 3, 4, 10, hair);
+      break;
+    case 'spiky':
+      rect(-5 + hx, hy + 6, 10, 3, hair);
+      rect(-5 + hx, hy + 2, 3, 5, hair);
+      rect(-4 + hx, hy + 9, 1, 2, hair);
+      rect(-1 + hx, hy + 9, 1, 3, hair);
+      rect(2 + hx, hy + 9, 1, 2, hair);
+      break;
+    case 'mohawk':
+      rect(-3 + hx, hy + 7, 4, 4, hair);
+      rect(-4 + hx, hy + 5, 2, 2, hair);
+      break;
+    case 'ponytail':
+      rect(-5 + hx, hy + 6, 10, 3, hair);
+      rect(-5 + hx, hy + 2, 3, 5, hair);
+      rect(-8 + hx, hy + 3 + o.tail, 3, 4, hair);
+      break;
+    case 'bald':
+      rect(-1 + hx, hy + 8, 3, 1, team.skinDark);
+      break;
+  }
+  if (team.extra === 'cap') {
+    const cap = team.band ?? team.shirtShade;
+    rect(-5 + hx, hy + 6, 10, 3, cap);
+    rect(4 + hx, hy + 6, 3, 1, cap);
+  } else if (team.band !== null) {
+    rect(-4 + hx, hy + 5, 9, 1, team.band);
+  }
+  // Eye, mouth.
+  if (o.squint) rect(1 + hx, hy + 3, 3, 1, C.black);
+  else rect(2 + hx, hy + 3 - (o.droop ? 1 : 0), 1, 1, C.black);
+  if (team.extra === 'glasses') {
+    rect(0 + hx, hy + 3, 5, 1, C.ink);
+    rect(2 + hx, hy + 3, 1, 1, C.lightGray);
+  }
+  if (o.grin) rect(1 + hx, hy, 3, 1, C.darkBrown);
+  else rect(3 + hx, hy, 2, 1, team.skinDark);
+}
+
 /** A tumbling KO body: chunky limbs around a spinning torso (client-side only). */
 export interface Ragdoll {
   x: number;
@@ -308,7 +371,7 @@ export interface Ragdoll {
   facing: 1 | -1;
 }
 
-export function drawRagdoll(p: Painter, rd: Ragdoll, team: TeamColors): void {
+export function drawRagdoll(p: PixelPainter, rd: Ragdoll, team: TeamColors): void {
   const pt = (along: number, side: number) => ({
     x: rd.x + Math.sin(rd.rot) * along + Math.cos(rd.rot) * side,
     y: rd.y - Math.cos(rd.rot) * along + Math.sin(rd.rot) * side,
@@ -322,15 +385,15 @@ export function drawRagdoll(p: Painter, rd: Ragdoll, team: TeamColors): void {
   // Torso runs from hips (along 0) to neck (along 18), centered on (x, y).
   const hips = pt(-9, 0);
   const neck = pt(9, 0);
-  limb(hips, 0.4 + flail, 12, C.skinDark);
-  limb(hips, -0.3 - flail, 12, C.skin);
-  limb(neck, 2.2 - flail, 10, C.skinDark);
-  limb(neck, -2.4 + flail, 10, C.skin);
+  limb(hips, 0.4 + flail, 12, team.skinDark);
+  limb(hips, -0.3 - flail, 12, team.skin);
+  limb(neck, 2.2 - flail, 10, team.skinDark);
+  limb(neck, -2.4 + flail, 10, team.skin);
   p.line(hips.x, hips.y, neck.x, neck.y, team.shirt, 6);
   const head = pt(14, 0);
-  p.rect(head.x - 4, head.y - 4, 9, 9, C.skin);
-  p.rect(head.x - 4, head.y - 4, 9, 2, team.hair);
-  p.rect(head.x - 4, head.y - 2, 9, 1, team.band);
+  p.rect(head.x - 4, head.y - 4, 9, 9, team.skin);
+  if (team.hairStyle !== 'bald') p.rect(head.x - 4, head.y - 4, 9, 2, team.hair);
+  if (team.band !== null) p.rect(head.x - 4, head.y - 2, 9, 1, team.band);
   // X-ed out eyes.
   p.px(head.x - 1, head.y + 1, C.black);
   p.px(head.x + 1, head.y + 1, C.black);

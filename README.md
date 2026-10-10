@@ -4,7 +4,8 @@ Badminton, but the shuttlecock can be a grenade. Win by points, or by KO.
 
 A browser-first 1v1 game: real-time badminton rallies plus a Worms-style arsenal. Play a bot
 (3 difficulties × 3 personalities), a friend on the same keyboard, or watch bots play. A
-tutorial, challenges, verified replays and procedural chiptune music are built in. It ships
+tutorial, challenges, verified replays, a locker to style your player and procedural
+chiptune music are built in. It ships
 to iOS and Android later through Capacitor.
 
 - 📐 [Game design and rules](docs/GAME_DESIGN.md)

@@ -24,7 +24,16 @@ import { GamepadDevice } from './input/gamepad';
 import { KeyboardDevice, resolveKeys } from './input/keyboard';
 import { TouchDevice, isTouchDevice } from './input/touch';
 import type { FxSettings } from './render/fx';
-import { setColorMode } from './render/palette';
+import {
+  BOT_LOOKS,
+  DEFAULT_LOOKS,
+  botLook,
+  resolveClash,
+  sanitizeLook,
+  teamColors,
+} from './render/looks';
+import type { Look } from './render/looks';
+import { setColorMode, setTeams } from './render/palette';
 import { MatchScene } from './render/scene';
 import type { SceneHost } from './render/scene';
 import { VIEW_H, VIEW_W } from './render/view';
@@ -63,13 +72,18 @@ function loadSettings(): UiSettings {
     colors: 'standard',
     gameSpeed: 1,
     keys: {},
+    looks: [{ ...DEFAULT_LOOKS[0] }, { ...DEFAULT_LOOKS[1] }],
     touchLefty: false,
     touchSize: 'medium',
     haptics: true,
     detail: 'high',
   };
   try {
-    return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
+    const saved = { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
+    // Looks come from storage: repair anything unknown instead of trusting it.
+    const raw: unknown[] = Array.isArray(saved.looks) ? saved.looks : [];
+    saved.looks = [sanitizeLook(raw[0], DEFAULT_LOOKS[0]), sanitizeLook(raw[1], DEFAULT_LOOKS[1])];
+    return saved;
   } catch {
     return defaults;
   }
@@ -210,6 +224,7 @@ class App implements SceneHost {
     });
     stage.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('keydown', (e) => {
+      if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return;
       this.sfx.unlock();
       if (e.code === 'Escape') this.togglePause();
       if (e.code === 'Backquote') this.ui.toggleTuning(this.session?.state ?? null);
@@ -242,6 +257,15 @@ class App implements SceneHost {
 
   private pendingEvents: SimEvent[] = [];
 
+  /** The looks drawn for each side in the current match. */
+  private looks: [Look, Look] = DEFAULT_LOOKS;
+
+  private applyLooks(looks: [Look, Look]): void {
+    this.looks = [{ ...looks[0] }, { ...looks[1] }];
+    const cb = this.settings.colors === 'colorblind';
+    setTeams([teamColors(looks[0], cb), teamColors(looks[1], cb)]);
+  }
+
   /** The game speed assist slows real time in matches with a human playing. */
   private applySpeedAssist(): void {
     const s = this.session;
@@ -260,6 +284,7 @@ class App implements SceneHost {
 
   private saveSettings(): void {
     this.configureTouch();
+    this.applyLooks(this.looks);
     setColorMode(this.settings.colors);
     this.applySpeedAssist();
     this.sfx.muted = this.settings.muted;
@@ -306,6 +331,12 @@ class App implements SceneHost {
     this.lastMode = 'replay';
     this.playing = replay;
     this.session = new MatchSession('replay', controllers, replay.config, replay.seed, replay);
+    // Replays carry the looks of the original match (older files fall back to defaults).
+    const saved = (replay.extras?.looks ?? []) as unknown[];
+    this.applyLooks([
+      sanitizeLook(saved[0], DEFAULT_LOOKS[0]),
+      sanitizeLook(saved[1], DEFAULT_LOOKS[1]),
+    ]);
     this.ui.challengeResult = null;
     this.overMs = 0;
     this.music.play('match');
@@ -350,6 +381,7 @@ class App implements SceneHost {
     if (mode !== 'attract') this.lastMode = mode;
     const seed = (mode !== 'attract' ? urlSeed() : null) ?? randomSeed();
     let controllers: [Controller, Controller];
+    let looks: [Look, Look] = DEFAULT_LOOKS;
     const s = this.settings;
     switch (mode) {
       case 'vsBot':
@@ -361,25 +393,31 @@ class App implements SceneHost {
         ];
         if (this.touch) devices.push(this.touch);
         const ch = mode === 'vsBot' ? this.challenge : null;
+        const style: Personality = mode === 'tutorial' ? 'purist' : (ch?.style ?? s.style);
         controllers = [
-          new HumanController('YOU', devices),
-          mode === 'tutorial'
-            ? new BotController(1, 'easy', seed, 'purist')
-            : new BotController(1, ch?.bot ?? s.difficulty, seed, ch?.style ?? s.style),
+          new HumanController(s.looks[0].name, devices),
+          new BotController(
+            1,
+            mode === 'tutorial' ? 'easy' : (ch?.bot ?? s.difficulty),
+            seed,
+            style,
+          ),
         ];
+        looks = [s.looks[0], resolveClash(s.looks[0], botLook(style), BOT_LOOKS[style].away)];
         break;
       }
       case 'local2p':
         controllers = [
-          new HumanController('P1', [
+          new HumanController(s.looks[0].name, [
             new KeyboardDevice(() => resolveKeys('p1', this.settings.keys)),
             new GamepadDevice(0),
           ]),
-          new HumanController('P2', [
+          new HumanController(s.looks[1].name, [
             new KeyboardDevice(() => resolveKeys('p2', this.settings.keys)),
             new GamepadDevice(1),
           ]),
         ];
+        looks = [s.looks[0], resolveClash(s.looks[0], s.looks[1])];
         break;
       case 'watch':
       case 'attract': {
@@ -391,10 +429,15 @@ class App implements SceneHost {
           new BotController(0, a, seed, styleA),
           new BotController(1, b, seed + 1, styleB),
         ];
+        looks = [
+          botLook(styleA),
+          resolveClash(botLook(styleA), botLook(styleB), BOT_LOOKS[styleB].away),
+        ];
         break;
       }
     }
     this.session = new MatchSession(mode, controllers, this.config(mode), seed);
+    this.applyLooks(looks);
     if (mode === 'tutorial' && !this.tutorial) this.tutorial = new Tutorial();
     if (mode !== 'tutorial') this.tutorial = null;
     if (mode !== 'vsBot' && mode !== 'attract') this.challenge = null;
@@ -488,6 +531,7 @@ class App implements SceneHost {
           this.start('tutorial');
           return events;
         }
+        if (session.replay) session.replay.extras = { looks: this.looks };
         if (session.replay && !session.tuningEdited) this.saveLastReplay(session.replay);
         const ch = this.challenge;
         if (ch && session.mode === 'vsBot') {

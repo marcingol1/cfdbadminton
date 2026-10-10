@@ -121,3 +121,20 @@ test.describe('on a phone', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test('locker: a custom look and name show up in the match and are saved', async ({ page }) => {
+  const errors = await open(page);
+  await page.click('text=LOCKER');
+  await expect(page.locator('.locker canvas')).toBeVisible();
+  await page.click('[data-lopt=kit][data-value="4"]');
+  await page.click('[data-lopt=hairStyle][data-value=ponytail]');
+  await page.fill('input.name', 'ace');
+  await page.press('input.name', 'Enter');
+  await page.click('text=BACK');
+  await page.click('text=PLAY VS BOT');
+  await expect(page.locator('.hud .side.p1 .name')).toHaveText('ACE');
+  await page.reload();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('deadminton.settings')!));
+  expect(saved.looks[0]).toMatchObject({ kit: 4, hairStyle: 'ponytail', name: 'ACE' });
+  expect(errors).toEqual([]);
+});

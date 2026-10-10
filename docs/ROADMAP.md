@@ -120,9 +120,18 @@ server-verified replays.
   accounts, the upload key, store listings and screenshots, a closed test on Play,
   TestFlight, review.
 
+### Player looks — ✅ built
+
+The **LOCKER** (main menu) customizes how you look: skin tone, hair style and color,
+shirt, shorts, headband, racket color, an extra (glasses, cap or wristbands) and your
+name, with an animated preview. Player 2 in local games has their own look. Bots wear a
+kit per personality (Purist white, Balanced blue, Berserker black with a mohawk). If both
+players would wear the same color family, the second one switches to an away kit. Looks
+are cosmetic only and are saved inside replays.
+
 ### Later backlog
 
-Doubles 2v2, character classes, more arenas, a destructible net, cosmetics, a campaign,
+Doubles 2v2, character classes, more arenas, a destructible net, unlockable cosmetics, a campaign,
 a level editor, online spectating.
 
 ## Decisions (approved 2026-10-09)

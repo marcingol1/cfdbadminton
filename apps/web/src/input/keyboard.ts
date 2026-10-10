@@ -155,6 +155,9 @@ function listen(): void {
   if (listening) return;
   listening = true;
   window.addEventListener('keydown', (e) => {
+    // Typing in a text field (the locker's name) is not game input.
+    const target = e.target as HTMLElement | null;
+    if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
     if (e.repeat) return;
     held.add(e.code);
     tapped.add(e.code);
