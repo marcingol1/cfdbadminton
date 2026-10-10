@@ -6,6 +6,8 @@ import {
   MAX_AIM,
   MIN_AIM,
   NET_CLEARANCE,
+  BODY_TOP,
+  hypot2,
   PLAYER_HALF_WIDTH,
   SHOULDER_FORWARD,
   SHOULDER_HEIGHT,
@@ -49,6 +51,10 @@ import type { BotProfile, Difficulty, Personality, PersonalityTraits } from './p
 const STANDING_MAX_Y = 2.3;
 const JUMPING_MAX_Y = 3.0;
 const MIN_CONTACT_Y = 0.3;
+/** Shuttle speed (m/s) above which a shot is read as a smash (faster reaction). */
+const SMASH_READ_SPEED = 25;
+/** How far ahead (ticks) the bot checks whether the shuttle is coming straight at it. */
+const BODY_WATCH_TICKS = 24;
 const HOME_X = 3.3;
 /** Keep this far from armed mines when choosing where to stand. */
 const MINE_CLEARANCE = 0.9;
@@ -162,7 +168,7 @@ export class Bot {
 
     if (
       (this.plan === null || this.plan.hits !== state.rally.hits) &&
-      state.rally.ticksSinceHit >= this.profile.reactionTicks &&
+      state.rally.ticksSinceHit >= this.reactionTicks(state) &&
       // A Ghost Shuttle can't be read until it reappears.
       state.shuttle.ghostTicks <= 0
     ) {
@@ -183,6 +189,16 @@ export class Bot {
       input.buttons |= Buttons.HIT;
     }
     return input;
+  }
+
+  /**
+   * Ticks before the bot reads a shot. A smash is read faster: players see it coming from
+   * the opponent's jump and wind-up, and there's no time to wait.
+   */
+  private reactionTicks(state: MatchState): number {
+    const s = state.shuttle;
+    const fast = hypot2(s.vx, s.vy) > SMASH_READ_SPEED;
+    return fast ? Math.round(this.profile.reactionTicks * 0.6) : this.profile.reactionTicks;
   }
 
   // ---------------------------------------------------------------- movement
@@ -311,7 +327,7 @@ export class Bot {
         judgedX > HALF_COURT + 0.1 &&
         nextFloat(this.rng) < this.profile.shotIQ
       ) {
-        return this.leavePlan(state, traj.end.x, 0.8);
+        return this.leaveOut(state, traj.points, traj.end.x);
       }
     }
 
@@ -338,8 +354,11 @@ export class Bot {
       jump: boolean;
       deficit: number;
     } | null = null;
+    // The prediction ignores bodies: a shuttle coming straight at us soon would hit us
+    // before reaching any point further along, so only plan up to there.
+    const bodyT = this.bodyEntryTick(state, traj.points);
     for (const p of traj.points) {
-      if (halfOwner(p.x) !== this.id) continue;
+      if (halfOwner(p.x) !== this.id || p.t >= bodyT) continue;
       // Heights are measured from the floor under the bot (it may stand in a crater).
       const floor = groundAt(state, p.x - me.facing * 0.7);
       const h = p.y - floor;
@@ -360,7 +379,21 @@ export class Bot {
         if (!fallback || deficit < fallback.deficit) fallback = { p, h, standX, jump, deficit };
       }
     }
-    const pick = best ?? fallback;
+    // Nothing reachable in time by moving: block it from where we stand if the racket can
+    // already get there (fast smashes at the body), rather than starting a hopeless run.
+    let block: { p: TrajectoryPoint; h: number; standX: number; jump: boolean } | null = null;
+    if (!best) {
+      const floor = groundAt(state, me.x);
+      const sh = { x: me.x + me.facing * SHOULDER_FORWARD, y: floor + SHOULDER_HEIGHT };
+      for (const p of traj.points) {
+        if (halfOwner(p.x) !== this.id || p.t < sw.activeStart + 1 || p.t >= bodyT) continue;
+        if (hypot2(p.x - sh.x, p.y - sh.y) <= tuning.player.reach * 0.9) {
+          block = { p, h: p.y - floor, standX: me.x, jump: false };
+          break;
+        }
+      }
+    }
+    const pick = best ?? block ?? fallback;
     if (!pick) return null;
 
     // Hot potato: a Frag that would blow up before (or right after) contact is dropped and fled.
@@ -374,7 +407,9 @@ export class Bot {
     else this.wantWeapon = null;
 
     const contactTick = state.tick + pick.p.t;
-    const timingNoise = Math.round(nextRange(this.rng, -1, 1) * this.profile.timingNoise);
+    // A block is a reflex from the spot: no wind-up to misjudge.
+    const timingNoise =
+      pick === block ? 0 : Math.round(nextRange(this.rng, -1, 1) * this.profile.timingNoise);
     const errorX = nextRange(this.rng, -1, 1) * this.profile.predictionError;
     return {
       hits: state.rally.hits,
@@ -386,6 +421,41 @@ export class Bot {
       swung: false,
       leave: false,
     };
+  }
+
+  /** First tick (from now) at which the shuttle would pass through our body, or Infinity. */
+  private bodyEntryTick(state: MatchState, points: TrajectoryPoint[]): number {
+    const me = state.players[this.id];
+    for (const p of points) {
+      if (p.t > BODY_WATCH_TICKS) break;
+      const h = p.y - me.y;
+      if (Math.abs(p.x - me.x) <= PLAYER_HALF_WIDTH + 0.05 && h >= 0.1 && h <= BODY_TOP) return p.t;
+    }
+    return Infinity;
+  }
+
+  /**
+   * Letting a shuttle go out: stand clear of where it comes down through body height, not
+   * just of the landing spot (it would otherwise hit you on the way down).
+   */
+  private leaveOut(state: MatchState, points: TrajectoryPoint[], endX: number): Plan {
+    const me = state.players[this.id];
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const p of points) {
+      if (halfOwner(p.x) !== this.id) continue;
+      const h = p.y - groundAt(state, p.x);
+      if (h > BODY_TOP + 0.3) continue;
+      lo = Math.min(lo, p.x);
+      hi = Math.max(hi, p.x);
+    }
+    if (lo > hi) return this.leavePlan(state, endX, 0.8);
+    const margin = PLAYER_HALF_WIDTH + 0.35;
+    const spots = [lo - margin, hi + margin]
+      .filter((x) => this.clampToHalf(x) === x)
+      .sort((a, b) => Math.abs(a - me.x) - Math.abs(b - me.x));
+    if (spots.length === 0) return this.leavePlan(state, endX, 0.8);
+    return { ...this.leavePlan(state, endX, 0.8), standX: spots[0]! };
   }
 
   /** Step `distance` m away from `dangerX` so the shuttle (or its blast) misses the body. */

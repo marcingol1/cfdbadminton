@@ -145,13 +145,15 @@ flowchart TD
 
 **1. Reaction delay.** After the opponent hits, the bot does nothing new for
 `reactionTicks` (for example 14 ticks ≈ 0.23 s on Medium). Then it plans once for that
-shot. A new hit by the opponent means a new plan.
+shot. A new hit by the opponent means a new plan. Fast shots (over 25 m/s, so smashes)
+are read sooner, after 60% of the delay, because there is less time to answer them.
 
 **2. Should I leave it?** If the predicted landing point is on the bot's own side and
 beyond the baseline, the bot considers letting it fall out. It judges the landing point
 with its `predictionError`, so a weaker bot misjudges more. It leaves the shot only with
-probability `shotIQ`. When leaving, it steps 0.8 m away so the shuttle doesn't hit its
-body (a body hit would lose the point, R-22).
+probability `shotIQ`. When leaving, it steps out of the shuttle's whole descending path
+(the stretch where it is below head height on the bot's side), so the shuttle can't hit
+its body on the way down (a body hit would lose the point, R-22).
 
 **3. Choose the contact point.** For each predicted point on the bot's side between
 0.3 m and 3.0 m high:
@@ -163,7 +165,12 @@ body (a body hit would lose the point, R-22).
   contacts allow attacking shots. Jumping costs a small penalty, so the bot jumps only
   when it's worth it.
 
-If nothing is reachable in time, it goes for the point it misses by the least and hopes.
+Points after the shuttle would already have hit the bot's body (if it stood still) are
+skipped: those contacts can never happen.
+
+If nothing is reachable in time, the bot first tries a **block**: a point it can reach
+from where it stands, swung with no timing noise (a reflex). Otherwise it goes for the
+point it misses by the least and hopes.
 
 **4. Add human mistakes.**
 

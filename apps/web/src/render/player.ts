@@ -31,12 +31,21 @@ export interface PlayerPose {
   mood: Mood;
   /** Milliseconds clock, for looping celebrations and wobbles. */
   time: number;
+  /** Fraction of an overhand mine throw (free arm), or -1. */
+  throwT?: number;
+  /** The free hand holds the shuttle out, ready to drop it for the serve. */
+  holding?: boolean;
+  /** Revenge Turn: a launcher on the shoulder along this angle (degrees, 0 = toward the net). */
+  aim?: { angle: number; weapon: LauncherKind } | null;
 }
 
-/** Where the racket head ended up this frame (for the swing smear). */
+export type LauncherKind = 'rocket' | 'mortar' | 'homing';
+
+/** Where the racket head and the free hand ended up this frame, in screen pixels. */
 export interface RacketPoint {
   x: number;
   y: number;
+  free: { x: number; y: number };
 }
 
 interface V {
@@ -125,6 +134,12 @@ export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors):
   const running = !airborne && speed > 0.4;
   const backpedal = running && Math.sign(pl.vx) !== f;
   const stunned = pl.stunTicks > 0;
+  const throwT = pose.throwT ?? -1;
+  const throwing = throwT >= 0;
+  const aim = pose.aim ?? null;
+  // Thrown back by a hit: arms fly up, the body tips back (flinch handles the slide).
+  const knocked = pl.knockTicks > 0 && !swinging && !aim;
+  const flail = knocked ? Math.sin(pose.time / 55) : 0;
 
   // ---- Lower body: feet from the gait, hips from crouch and bob. ----
   let crouch = pose.ready && !running && !airborne ? 2 : 0;
@@ -135,7 +150,11 @@ export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors):
   let front: V;
   let back: V;
   let bob = pose.bob;
-  if (airborne) {
+  if (airborne && knocked) {
+    // Legs thrown out ahead of the body.
+    front = { x: 5, y: 4 + flail };
+    back = { x: 3, y: 2 - flail };
+  } else if (airborne) {
     // Knees tucked on the way up, legs reaching for the floor on the way down.
     const rising = pl.vy > 0;
     front = rising ? { x: 3, y: 5 } : { x: 2, y: 1 };
@@ -168,17 +187,46 @@ export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors):
 
   // ---- Upper body: lean from running, swings and mood. ----
   const sway = stunned ? Math.round(Math.sin(pose.time / 90) * 1.5) : 0;
-  const lean = Math.round(pose.lean + swingLean(t) + (backpedal ? -1 : 0)) + sway;
+  const lean =
+    Math.round(
+      pose.lean + swingLean(throwing ? throwT : t) + (backpedal ? -1 : 0) + (knocked ? -3 : 0),
+    ) + sway;
   const droop = pose.mood === 'lose' ? 2 : 0;
   const top = hipY + 22 - droop; // shoulders
   const shoulder: V = { x: 2 + lean, y: top - 2 };
   const backShoulder: V = { x: -3 + lean, y: top - 3 };
 
+  // Launcher on the shoulder during a Revenge Turn: both hands grip it.
+  const aimDir: V = aim
+    ? { x: Math.cos(aim.angle * DEG), y: Math.sin(aim.angle * DEG) }
+    : { x: 1, y: 0 };
+  const tubeAt = (k: number): V => ({
+    x: shoulder.x + aimDir.x * k,
+    y: shoulder.y + 1 + aimDir.y * k,
+  });
+
   // Back arm (behind the torso): pumps when running, points at the shuttle in an
-  // overhead wind-up, tucks in at contact, waves when celebrating.
+  // overhead wind-up, tucks in at contact, waves when celebrating, throws mines, holds the
+  // shuttle out before a serve.
   let backAng: number;
   let backExt = 0.85;
-  if (pose.mood === 'win' && !swinging) {
+  if (throwing) {
+    // Overhand throw (the mine leaves at the start): whip over the top from behind the
+    // head, follow through low, then recover.
+    backAng =
+      throwT < 0.15
+        ? ease(150, 10, throwT / 0.15)
+        : throwT < 0.45
+          ? ease(10, -55, (throwT - 0.15) / 0.3)
+          : ease(-55, -80, clamp01((throwT - 0.45) / 0.55));
+    backExt = 1;
+  } else if (knocked) {
+    backAng = 125 + flail * 25;
+    backExt = 1;
+  } else if (pose.holding && !swinging) {
+    backAng = -28;
+    backExt = 1;
+  } else if (pose.mood === 'win' && !swinging) {
     backAng = 100 + Math.sin(pose.time / 120) * 10;
     backExt = 1;
   } else if (swinging && pose.swingStyle === 'overhead') {
@@ -192,10 +240,12 @@ export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors):
     backAng = pose.ready ? -50 : -80;
     backExt = pose.ready ? 0.7 : 0.9;
   }
-  const backHand: V = {
-    x: backShoulder.x + Math.cos(backAng * DEG) * (UPPER_ARM + FOREARM) * backExt,
-    y: backShoulder.y + Math.sin(backAng * DEG) * (UPPER_ARM + FOREARM) * backExt,
-  };
+  const backHand: V = aim
+    ? tubeAt(-1)
+    : {
+        x: backShoulder.x + Math.cos(backAng * DEG) * (UPPER_ARM + FOREARM) * backExt,
+        y: backShoulder.y + Math.sin(backAng * DEG) * (UPPER_ARM + FOREARM) * backExt,
+      };
   const backElbow = joint(backShoulder, backHand, UPPER_ARM, FOREARM, -1);
   line(backShoulder, backElbow, team.skinDark, 2);
   line(backElbow, backHand, team.skinDark, 2);
@@ -241,6 +291,10 @@ export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors):
     armAng = -75;
     racketAng = -95;
     ext = 0.95;
+  } else if (knocked) {
+    armAng = 110 - flail * 25;
+    racketAng = 150 - flail * 30;
+    ext = 1;
   } else if (airborne) {
     armAng = 75;
     racketAng = 105;
@@ -262,10 +316,19 @@ export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors):
     ext = armExtension(t);
   }
   const reach = (UPPER_ARM + FOREARM) * ext;
-  const hand: V = {
-    x: shoulder.x + Math.cos(armAng * DEG) * reach,
-    y: shoulder.y + Math.sin(armAng * DEG) * reach,
-  };
+  const hand: V = aim
+    ? tubeAt(5)
+    : {
+        x: shoulder.x + Math.cos(armAng * DEG) * reach,
+        y: shoulder.y + Math.sin(armAng * DEG) * reach,
+      };
+  const free = { x: X(backHand), y: Y(backHand) };
+  if (aim) {
+    drawLauncher(line, tubeAt, aim.weapon);
+    line(shoulder, joint(shoulder, hand, UPPER_ARM, FOREARM, -1), skin, 2);
+    line(joint(shoulder, hand, UPPER_ARM, FOREARM, -1), hand, skin, 2);
+    return { x: X(hand), y: Y(hand), free };
+  }
   const bend = pose.swingStyle === 'underhand' && swinging ? 1 : -1;
   const elbow = joint(shoulder, hand, UPPER_ARM, FOREARM, bend);
   line(shoulder, elbow, skin, 2);
@@ -294,7 +357,29 @@ export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors):
   }
   p.px(hx2, hy2, C.lightGray);
   p.px(hx2 + cx, hy2 + cy, C.lightGray);
-  return { x: hx2, y: hy2 };
+  return { x: hx2, y: hy2, free };
+}
+
+/** A shoulder-mounted launcher for the Revenge Turn, colored like its projectile. */
+function drawLauncher(
+  line: (a: V, b: V, c: number, size: number) => void,
+  at: (k: number) => V,
+  weapon: LauncherKind,
+): void {
+  if (weapon === 'mortar') {
+    // Short, fat tube.
+    line(at(-3), at(6), C.slate, 4);
+    line(at(-3), at(-1), C.ink, 4);
+    line(at(5), at(6), C.gray, 4);
+    return;
+  }
+  const body = weapon === 'homing' ? C.navy : C.midGreen;
+  line(at(-6), at(10), body, 3);
+  line(at(-6), at(-5), C.ink, 3);
+  line(at(9), at(10), C.ink, 3);
+  // Sight on top; the homing launcher's lens glows.
+  const s = at(3);
+  line({ x: s.x, y: s.y + 2 }, { x: s.x + 1, y: s.y + 2 }, weapon === 'homing' ? C.cyan : C.ink, 1);
 }
 
 type LocalRect = (dx: number, dy: number, w: number, h: number, c: number) => void;

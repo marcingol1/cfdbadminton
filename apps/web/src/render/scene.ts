@@ -32,7 +32,7 @@ import type { FxSettings } from './fx';
 import { Painter } from './painter';
 import { C, TEAMS } from './palette';
 import { drawPlayer, drawRagdoll } from './player';
-import type { Mood, SwingStyle } from './player';
+import type { LauncherKind, Mood, SwingStyle } from './player';
 import { paintRooftop } from './rooftop';
 import { FLOOR_Y, PX_PER_M, VIEW_H, VIEW_W, sx, sy } from './view';
 
@@ -61,6 +61,8 @@ export class MatchScene extends Phaser.Scene {
   private readonly crowd = new Crowd();
   private readonly poses: [PlayerAnim, PlayerAnim] = [new PlayerAnim(), new PlayerAnim()];
   private trail: { x: number; y: number }[] = [];
+  /** The server's free hand (screen pixels) while holding the shuttle, before the swing. */
+  private heldAt: { x: number; y: number } | null = null;
   private swingStyle: [SwingStyle, SwingStyle] = ['overhead', 'overhead'];
   private landingX: number | null = null;
   private trajectory: { x: number; y: number }[] = [];
@@ -350,12 +352,16 @@ export class MatchScene extends Phaser.Scene {
       mood === 'win' && this.moodMs === Infinity && pl.grounded
         ? Math.round(Math.abs(Math.sin(this.time0 / 160)) * 4)
         : 0;
+    const throwT = pl.throwTicks > 0 ? 1 - pl.throwTicks / WEAPON_TUNING.mine.throwTicks : -1;
     const swing =
-      pl.throwTicks > 0
-        ? 1 - pl.throwTicks / WEAPON_TUNING.mine.throwTicks
-        : pl.swingTick < 0
-          ? -1
-          : (pl.swingTick + a) / s.config.tuning.swing.totalTicks;
+      throwT >= 0 || pl.swingTick < 0 ? -1 : (pl.swingTick + a) / s.config.tuning.swing.totalTicks;
+    const holding = s.shuttle.mode === 'held' && s.server === id;
+    const rv = s.revenge;
+    const w = pl.revengeWeapon;
+    const aim =
+      rv && !rv.fired && rv.shooter === id && (w === 'rocket' || w === 'mortar' || w === 'homing')
+        ? { angle: rv.angle, weapon: w as LauncherKind }
+        : null;
 
     // Racket smear: fading arc through the last few racket-head positions.
     const sm = anim.smear;
@@ -370,7 +376,7 @@ export class MatchScene extends Phaser.Scene {
         x: X,
         y: Y - hop,
         player: pl,
-        swingStyle: pl.throwTicks > 0 ? 'overhead' : this.swingStyle[id],
+        swingStyle: this.swingStyle[id],
         swing,
         runPhase,
         hurtFlash: anim.hurtMs > 0 && Math.floor(anim.hurtMs / 50) % 2 === 0,
@@ -384,11 +390,15 @@ export class MatchScene extends Phaser.Scene {
           (s.phase === 'serve' && s.server !== id),
         mood,
         time: this.time0,
+        throwT,
+        holding,
+        aim,
       },
       TEAMS[id],
     );
-    if (swing >= 0.05 && swing <= 0.7 && pl.throwTicks <= 0) {
-      if (dt > 0 || sm.length === 0) sm.push(head);
+    if (holding && swing < 0) this.heldAt = head.free;
+    if (swing >= 0.05 && swing <= 0.7) {
+      if (dt > 0 || sm.length === 0) sm.push({ x: head.x, y: head.y });
       if (sm.length > 5) sm.shift();
     } else if (sm.length) {
       sm.shift();
@@ -409,8 +419,17 @@ export class MatchScene extends Phaser.Scene {
       sh.mode === 'held'
         ? SERVE_HAND_HEIGHT + s.players[s.server].y
         : lerp(session.prev.s.y, sh.y, a);
-    const X = sx(hx);
-    const Y = sy(hy);
+    let X = sx(hx);
+    let Y = sy(hy);
+    if (sh.mode === 'held' && this.heldAt) {
+      // In the server's free hand, then dropped into the swing (contact at the ideal tick).
+      const server = s.players[s.server];
+      const sw = s.config.tuning.swing;
+      const k = server.swingTick < 0 ? 0 : Math.min(1, (server.swingTick + a) / sw.idealTick);
+      const kk = k * k;
+      X = Math.round(lerp(this.heldAt.x + server.facing, X, kk));
+      Y = Math.round(lerp(this.heldAt.y + 2, Y, kk));
+    }
     // Floor shadow: shows where the shuttle is over the court, smaller and fainter when high.
     if (sh.mode === 'flight' || sh.mode === 'dead') {
       const h = Math.max(0, hy);
