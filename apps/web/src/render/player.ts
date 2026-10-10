@@ -247,8 +247,12 @@ export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors):
         y: backShoulder.y + Math.sin(backAng * DEG) * (UPPER_ARM + FOREARM) * backExt,
       };
   const backElbow = joint(backShoulder, backHand, UPPER_ARM, FOREARM, -1);
-  line(backShoulder, backElbow, team.skinDark, 2);
-  line(backElbow, backHand, team.skinDark, 2);
+  const drawBackArm = () => {
+    line(backShoulder, backElbow, team.skinDark, 2);
+    line(backElbow, backHand, team.skinDark, 2);
+  };
+  // A throwing arm whips across the body, so it's drawn in front of the torso.
+  if (!throwing) drawBackArm();
 
   // Shorts and torso, drawn in bands so the lean bends the body instead of tilting a box.
   const h = Math.round(hipY);
@@ -277,6 +281,7 @@ export function drawPlayer(p: PixelPainter, pose: PlayerPose, team: TeamColors):
   line({ x: 1, y: hipY }, frontKnee, skin, 3);
   line(frontKnee, { x: front.x, y: front.y + 2 }, skin, 3);
   rect(Math.round(front.x) - 1, Math.round(front.y), 5, 2, C.white);
+  if (throwing) drawBackArm();
 
   // ---- Racket arm: shoulder → elbow → hand, then the racket. ----
   // Between shots the hand rests at chest height with the racket up; in a swing the arm
