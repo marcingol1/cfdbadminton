@@ -51,6 +51,10 @@ export interface Tuning {
     idealTick: number;
     /** Ticks after a hit during which the hitter's own body ignores the shuttle. */
     selfHitGrace: number;
+    /** How long a HIT press waits for the racket to be free (pressing a little early). */
+    bufferTicks: number;
+    /** Launch speed multiplier for smashes hit in the air. */
+    jumpSmashSpeed: number;
   };
   serve: {
     serverX: number;
@@ -83,7 +87,15 @@ export const DEFAULT_TUNING: Tuning = {
     reach: 0.95,
     sweetSpot: 0.65,
   },
-  swing: { totalTicks: 16, activeStart: 2, activeEnd: 10, idealTick: 5, selfHitGrace: 15 },
+  swing: {
+    totalTicks: 16,
+    activeStart: 2,
+    activeEnd: 10,
+    idealTick: 5,
+    selfHitGrace: 15,
+    bufferTicks: 6,
+    jumpSmashSpeed: 1.15,
+  },
   serve: { serverX: 2.6, receiverX: 3.4, clockTicks: 300, quality: 0.92 },
   pointPauseTicks: 80,
   shots: {

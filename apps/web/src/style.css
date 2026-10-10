@@ -452,6 +452,16 @@ h2.p2 {
   color: #2ce8f5;
 }
 
+.float.perfect {
+  color: #fee761;
+  font-size: calc(var(--u) * 5);
+}
+
+.float.callout {
+  color: #f77622;
+  font-size: calc(var(--u) * 7);
+}
+
 @keyframes floatUp {
   to {
     transform: translate(-50%, -260%);

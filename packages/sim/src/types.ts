@@ -80,6 +80,8 @@ export interface PlayerState {
   swingTick: number;
   swingIntent: ShotIntent;
   swingContact: boolean;
+  /** Ticks a HIT press stays queued while the racket is still busy (input buffer). */
+  hitBuffer: number;
   prevButtons: number;
   hp: number;
   /** Damage the shield still absorbs (R-55). */
@@ -247,6 +249,8 @@ export type SimEvent =
       y: number;
       speed: number;
       weapon: ShuttleWeapon | null;
+      /** Hit in the air (a jump smash is faster). */
+      jump: boolean;
     }
   | { type: 'net'; x: number; y: number }
   | { type: 'land'; x: number; inBounds: boolean }

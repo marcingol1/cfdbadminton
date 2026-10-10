@@ -262,6 +262,13 @@ shot, and the timing (distance from the racket's sweet spot) sets its quality an
 | Down             | Drop / net shot       | Drop                         |
 | Neutral          | Lift                  | Drive                        |
 
+**Jump smash.** A smash hit in the air leaves the racket 15% faster than one hit from the
+ground (`tuning.swing.jumpSmashSpeed`), and it is steeper because the contact is higher.
+
+**Swing buffer.** A hit pressed while the racket is still busy (finishing a swing or a
+throw) is remembered for 6 ticks (`tuning.swing.bufferTicks`) and swings as soon as the
+racket is free, so a press that is a hair early isn't lost.
+
 | Action        | Keyboard + mouse            | Gamepad            | Touch (landscape)            |
 | ------------- | --------------------------- | ------------------ | ---------------------------- |
 | Move          | A / D                       | Left stick         | Virtual stick (left thumb)   |

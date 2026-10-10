@@ -142,8 +142,9 @@ export class MatchScene extends Phaser.Scene {
         if (e.quality >= 0.8)
           this.fx.ring(X, Y, perfect ? 11 : 7, 150, perfect ? C.paleYellow : C.white);
         if (smash) {
-          this.shake(140, 0.006);
-          session.hitStop(perfect ? 90 : 60);
+          this.shake(e.jump ? 200 : 140, e.jump ? 0.009 : 0.006);
+          session.hitStop(perfect || e.jump ? 90 : 60);
+          if (e.jump) this.fx.ring(X, Y, 14, 220, C.orange);
           this.smashMs = 450;
           this.crowd.cheer(e.player, 0.45);
         } else if (perfect) {
@@ -377,6 +378,10 @@ export class MatchScene extends Phaser.Scene {
         lean: anim.lean,
         bob: anim.bob(pl, swinging, this.time0),
         flinch: anim.flinch,
+        // Ready stance while the shuttle is coming this way (or waiting for a serve).
+        ready:
+          (s.phase === 'rally' && s.shuttle.mode === 'flight' && s.rally.lastHitter !== id) ||
+          (s.phase === 'serve' && s.server !== id),
         mood,
         time: this.time0,
       },
@@ -406,9 +411,31 @@ export class MatchScene extends Phaser.Scene {
         : lerp(session.prev.s.y, sh.y, a);
     const X = sx(hx);
     const Y = sy(hy);
+    // Floor shadow: shows where the shuttle is over the court, smaller and fainter when high.
+    if (sh.mode === 'flight' || sh.mode === 'dead') {
+      const h = Math.max(0, hy);
+      const w = Math.max(1, 5 - Math.round(h / 2));
+      p.rect(
+        X - Math.floor(w / 2),
+        FLOOR_Y - 1,
+        w,
+        1,
+        C.black,
+        0.15 + 0.35 * Math.max(0, 1 - h / 9),
+      );
+    }
     if (sh.ghostTicks > 0) {
-      // Invisible: only a faint shadow on the floor gives it away.
-      p.rect(X - 1, FLOOR_Y - 1, 3, 1, C.black, 0.5);
+      // Invisible: only the shadow gives it away.
+      this.trail.length = 0;
+      return;
+    }
+    // Above the top of the screen (Rooftop lifts): an arrow at the edge, with the height.
+    if (Y < 3) {
+      const ax = Math.max(4, Math.min(VIEW_W - 5, X));
+      p.px(ax, 1, C.paleYellow);
+      p.rect(ax - 1, 2, 3, 1, C.paleYellow);
+      p.rect(ax - 2, 3, 5, 1, C.paleYellow);
+      drawDigits(p, String(Math.round(hy)), ax, 6, C.paleYellow);
       this.trail.length = 0;
       return;
     }

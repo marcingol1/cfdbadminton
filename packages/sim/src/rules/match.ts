@@ -64,6 +64,7 @@ function createPlayer(id: PlayerId, config: MatchConfig): PlayerState {
     swingTick: -1,
     swingIntent: 'neutral',
     swingContact: false,
+    hitBuffer: 0,
     prevButtons: 0,
     hp: MAX_HP,
     shield: 0,
@@ -234,6 +235,9 @@ function launchShuttle(
   applyShotWeapons(state, p, isServe, events);
   const shot = chooseShot(intent, s.y, Math.abs(s.x), isServe);
   const env = flightEnv(state);
+  // A smash hit in the air comes down faster (and so steeper) than one from the ground.
+  const jump = !p.grounded && !isServe;
+  const speedScale = jump && shot === 'smash' ? state.config.tuning.swing.jumpSmashSpeed : 1;
   const v = playShot(
     shot,
     quality,
@@ -245,6 +249,7 @@ function launchShuttle(
     state.config.tuning,
     env.ceiling,
     state.rng,
+    speedScale,
   );
   s.mode = 'flight';
   s.vx = v.vx;
@@ -263,6 +268,7 @@ function launchShuttle(
     y: s.y,
     speed: hypot2(v.vx, v.vy),
     weapon: s.weapon,
+    jump,
   });
 }
 

@@ -604,6 +604,12 @@ export class Ui {
         case 'damage':
           if (e.amount > 0) this.float(`-${e.amount}`, e.x, e.y, 'dmg');
           break;
+        case 'hit':
+          // Timing feedback for people playing; jump smashes for everyone.
+          if (e.shot === 'smash' && e.jump) this.float('JUMP SMASH!', e.x, e.y + 0.7, 'callout');
+          else if (e.quality >= 0.95 && session.controllers[e.player].kind === 'human')
+            this.float('PERFECT', e.x, e.y + 0.6, 'perfect');
+          break;
         case 'heal':
           if (e.amount > 0)
             this.float(

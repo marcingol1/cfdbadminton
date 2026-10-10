@@ -6,7 +6,8 @@ import type { InputFrame, MatchConfig, MatchState } from './types';
 // (including tuning) and every tick's inputs for both players. The final state hash lets
 // playback verify itself. Inputs are run-length encoded: [count, mx0, my0, b0, mx1, my1, b1].
 
-export const REPLAY_VERSION = 1;
+/** Bumped whenever the simulation changes how inputs play out (old replays would desync). */
+export const REPLAY_VERSION = 2;
 
 export interface Replay {
   game: 'deadminton';
@@ -103,6 +104,8 @@ export function parseReplay(json: unknown): Replay {
   const r = json as Partial<Replay> | null;
   if (!r || typeof r !== 'object' || r.game !== 'deadminton')
     throw new Error('Not a Deadminton replay file.');
+  if (typeof r.version === 'number' && r.version < REPLAY_VERSION)
+    throw new Error('This replay was recorded by an older version of Deadminton.');
   if (r.version !== REPLAY_VERSION)
     throw new Error(`Unsupported replay version ${String(r.version)}.`);
   if (typeof r.seed !== 'number' || typeof r.ticks !== 'number' || typeof r.finalHash !== 'number')

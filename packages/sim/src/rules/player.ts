@@ -99,7 +99,13 @@ export function updatePlayer(
     p.swingTick++;
     if (p.swingTick >= state.config.tuning.swing.totalTicks) p.swingTick = -1;
   }
-  if (opts.canSwing && canAct(p) && p.throwTicks <= 0 && p.swingTick < 0 && pressed & Buttons.HIT) {
+  // A HIT pressed while the racket is still busy waits a few ticks instead of being lost.
+  if (!opts.canSwing) p.hitBuffer = 0;
+  else if (pressed & Buttons.HIT) p.hitBuffer = state.config.tuning.swing.bufferTicks + 1;
+  const free = opts.canSwing && canAct(p) && p.throwTicks <= 0 && p.swingTick < 0;
+  if (p.hitBuffer > 0) p.hitBuffer--;
+  if (free && (pressed & Buttons.HIT || p.hitBuffer > 0)) {
+    p.hitBuffer = 0;
     p.swingTick = 0;
     p.swingIntent = intentFromInput(input, p.facing);
     p.swingContact = false;
