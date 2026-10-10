@@ -1,12 +1,87 @@
 // Procedural sound effects (sfxr-style) with WebAudio, so the MVP needs no audio assets.
 
-type Sound = 'swing' | 'hit' | 'smash' | 'net' | 'land' | 'body' | 'point' | 'win' | 'serve';
+type Sound =
+  | 'swing'
+  | 'hit'
+  | 'smash'
+  | 'net'
+  | 'land'
+  | 'body'
+  | 'point'
+  | 'win'
+  | 'serve'
+  | 'explosion'
+  | 'launch'
+  | 'zap'
+  | 'beep'
+  | 'pickup'
+  | 'tick'
+  | 'ko'
+  | 'alarm'
+  | 'cheer'
+  | 'thud';
 
 export class Sfx {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  private musicGain: GainNode | null = null;
+  private musicFilter: BiquadFilterNode | null = null;
   private noise: AudioBuffer | null = null;
-  muted = false;
+  private muteState = false;
+  private sfxLevel = 0.8;
+  private musicLevel = 0.6;
+  /** Called once the audio context exists (music starts then). */
+  onUnlock: (() => void) | null = null;
+
+  get muted(): boolean {
+    return this.muteState;
+  }
+
+  set muted(v: boolean) {
+    this.muteState = v;
+    this.applyLevels();
+  }
+
+  /** Volumes 0..1 for effects and music. */
+  setLevels(sfx: number, music: number): void {
+    this.sfxLevel = sfx;
+    this.musicLevel = music;
+    this.applyLevels();
+  }
+
+  private applyLevels(): void {
+    if (!this.ctx || !this.master || !this.musicGain) return;
+    const t = this.ctx.currentTime;
+    this.master.gain.setTargetAtTime(this.muteState ? 0 : 0.35 * this.sfxLevel, t, 0.02);
+    this.musicGain.gain.setTargetAtTime(this.muteState ? 0 : 0.16 * this.musicLevel, t, 0.05);
+  }
+
+  /** The running audio context, or null before the first user gesture. */
+  get context(): AudioContext | null {
+    return this.ctx && this.ctx.state === 'running' ? this.ctx : null;
+  }
+
+  /** Where music voices connect (volume and the slow-motion filter). */
+  get musicOut(): AudioNode | null {
+    return this.musicFilter;
+  }
+
+  get noiseBuffer(): AudioBuffer | null {
+    return this.noise;
+  }
+
+  /** Muffles the music for a moment (KO slow motion). */
+  muffle(ms: number): void {
+    const ctx = this.ctx;
+    const f = this.musicFilter;
+    if (!ctx || !f) return;
+    const t = ctx.currentTime;
+    f.frequency.cancelScheduledValues(t);
+    f.frequency.setValueAtTime(f.frequency.value, t);
+    f.frequency.exponentialRampToValueAtTime(500, t + 0.08);
+    f.frequency.setValueAtTime(500, t + ms / 1000);
+    f.frequency.exponentialRampToValueAtTime(18000, t + ms / 1000 + 0.6);
+  }
 
   /** Must be called from a user gesture (browsers block audio until then). */
   unlock(): void {
@@ -17,19 +92,33 @@ export class Sfx {
       if (!Ctor) return;
       this.ctx = new Ctor();
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.35;
       this.master.connect(this.ctx.destination);
-      const len = this.ctx.sampleRate * 0.5;
+      this.musicGain = this.ctx.createGain();
+      this.musicFilter = this.ctx.createBiquadFilter();
+      this.musicFilter.type = 'lowpass';
+      this.musicFilter.frequency.value = 18000;
+      this.musicFilter.connect(this.musicGain).connect(this.ctx.destination);
+      this.applyLevels();
+      const len = this.ctx.sampleRate * 1.5;
       this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       const data = this.noise.getChannelData(0);
       for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
     }
-    if (this.ctx.state === 'suspended') void this.ctx.resume();
+    if (this.ctx.state === 'suspended') void this.ctx.resume().then(() => this.fireUnlock());
+    else this.fireUnlock();
+  }
+
+  private unlocked = false;
+
+  private fireUnlock(): void {
+    if (this.unlocked) return;
+    this.unlocked = true;
+    this.onUnlock?.();
   }
 
   play(sound: Sound, intensity = 1): void {
     const ctx = this.ctx;
-    if (!ctx || !this.master || this.muted || ctx.state !== 'running') return;
+    if (!ctx || !this.master || this.muteState || ctx.state !== 'running') return;
     const t = ctx.currentTime;
     switch (sound) {
       case 'swing':
@@ -61,6 +150,41 @@ export class Sfx {
       case 'win':
         [523, 659, 784, 1046].forEach((f, i) => this.tone(t + i * 0.12, 'square', f, f, 0.16, 0.2));
         break;
+      case 'explosion':
+        this.noiseBurst(t, 0.45 * intensity, 900, 60, 1.0);
+        this.tone(t, 'sine', 120, 35, 0.4 * intensity, 0.6);
+        break;
+      case 'launch':
+        this.noiseBurst(t, 0.3, 400, 2400, 0.5);
+        break;
+      case 'zap':
+        this.tone(t, 'sawtooth', 1200, 200, 0.18, 0.25);
+        this.tone(t + 0.05, 'square', 900, 1400, 0.1, 0.15);
+        break;
+      case 'beep':
+        this.tone(t, 'square', 1500, 1500, 0.05, 0.12);
+        break;
+      case 'pickup':
+        [660, 990, 1320].forEach((f, i) => this.tone(t + i * 0.05, 'triangle', f, f, 0.08, 0.2));
+        break;
+      case 'tick':
+        this.tone(t, 'square', 2000, 2000, 0.02, 0.08);
+        break;
+      case 'ko':
+        this.tone(t, 'square', 220, 55, 0.9, 0.35);
+        this.noiseBurst(t, 0.6, 300, 80, 0.6);
+        break;
+      case 'cheer':
+        this.crowd(t, 1.6 * intensity, 0.5 * intensity);
+        break;
+      case 'thud':
+        this.tone(t, 'sine', 90, 40, 0.25, 0.6);
+        this.noiseBurst(t, 0.15, 400, 120, 0.5);
+        break;
+      case 'alarm':
+        this.tone(t, 'square', 440, 440, 0.1, 0.18);
+        this.tone(t + 0.14, 'square', 330, 330, 0.16, 0.18);
+        break;
     }
   }
 
@@ -83,6 +207,32 @@ export class Sfx {
     osc.connect(gain).connect(this.master!);
     osc.start(t);
     osc.stop(t + dur + 0.02);
+  }
+
+  /** Crowd roar: band-passed noise with a fast wobble, swelling then fading. */
+  private crowd(t: number, dur: number, vol: number): void {
+    const ctx = this.ctx!;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise;
+    src.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 0.8;
+    filter.frequency.value = 1100;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + 0.25);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    const lfo = ctx.createOscillator();
+    const depth = ctx.createGain();
+    lfo.frequency.value = 7;
+    depth.gain.value = vol * 0.35;
+    lfo.connect(depth).connect(gain.gain);
+    src.connect(filter).connect(gain).connect(this.master!);
+    src.start(t);
+    lfo.start(t);
+    src.stop(t + dur + 0.05);
+    lfo.stop(t + dur + 0.05);
   }
 
   private noiseBurst(t: number, dur: number, f0: number, f1: number, vol: number): void {

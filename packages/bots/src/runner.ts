@@ -1,7 +1,16 @@
 import { createMatch, step } from '@deadminton/sim';
 import type { MatchConfig, MatchState, PlayerId, SimEvent } from '@deadminton/sim';
 import { Bot } from './bot';
-import type { BotProfile, Difficulty } from './profiles';
+import type { BotProfile, BotSpec, Difficulty } from './profiles';
+
+/** A bot by difficulty name, custom profile, or difficulty + personality. */
+export type BotArg = Difficulty | BotProfile | BotSpec;
+
+export function makeBot(id: PlayerId, arg: BotArg, seed: number): Bot {
+  if (typeof arg === 'object' && 'personality' in arg)
+    return new Bot(id, arg.difficulty, seed, arg.personality);
+  return new Bot(id, arg, seed);
+}
 
 export interface BotMatchResult {
   winner: PlayerId | null;
@@ -12,20 +21,25 @@ export interface BotMatchResult {
   longestRally: number;
   pointReasons: Record<string, number>;
   shots: Record<string, number>;
+  winReason: string | null;
+  /** Damage dealt by source (explosion, smash, lead, shock, fall, pit). */
+  damage: Record<string, number>;
+  /** Weapons used: loaded shots on hits, throws, Revenge Turn picks. */
+  weapons: Record<string, number>;
   final: MatchState;
 }
 
 /** Plays a full headless bot-vs-bot match. Deterministic for a given seed. */
 export function runBotMatch(
-  a: BotProfile | Difficulty,
-  b: BotProfile | Difficulty,
+  a: BotArg,
+  b: BotArg,
   seed: number,
   config: Partial<MatchConfig> = {},
   maxTicks = 60 * 60 * 30,
   onEvents?: (events: SimEvent[], state: MatchState) => void,
 ): BotMatchResult {
   const state = createMatch(config, seed);
-  const bots = [new Bot(0, a, seed), new Bot(1, b, seed + 1)] as const;
+  const bots = [makeBot(0, a, seed), makeBot(1, b, seed + 1)] as const;
   const result: BotMatchResult = {
     winner: null,
     score: [0, 0],
@@ -35,6 +49,9 @@ export function runBotMatch(
     longestRally: 0,
     pointReasons: {},
     shots: {},
+    winReason: null,
+    damage: {},
+    weapons: {},
     final: state,
   };
   let rallyHits = 0;
@@ -45,6 +62,15 @@ export function runBotMatch(
         result.hits++;
         rallyHits++;
         result.shots[e.shot] = (result.shots[e.shot] ?? 0) + 1;
+      } else if (e.type === 'loaded') {
+        result.weapons[e.weapon] = (result.weapons[e.weapon] ?? 0) + 1;
+      } else if (e.type === 'damage') {
+        result.damage[e.source] = (result.damage[e.source] ?? 0) + e.amount;
+      } else if (e.type === 'throw') {
+        result.weapons[e.weapon] = (result.weapons[e.weapon] ?? 0) + 1;
+      } else if (e.type === 'revengeFire') {
+        const k = e.weapon ?? 'skip';
+        result.weapons[k] = (result.weapons[k] ?? 0) + 1;
       } else if (e.type === 'point') {
         result.rallies++;
         result.longestRally = Math.max(result.longestRally, rallyHits);
@@ -55,6 +81,7 @@ export function runBotMatch(
     onEvents?.(events, state);
   }
   result.winner = state.winner;
+  result.winReason = state.winReason;
   result.score = [state.score[0], state.score[1]];
   result.ticks = state.tick;
   return result;

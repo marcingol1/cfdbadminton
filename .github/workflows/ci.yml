@@ -20,5 +20,20 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - name: Bot-vs-bot smoke batch (every match must finish)
-        run: npm run simbatch -- --a medium --b medium --n 20
+        run: |
+          npm run simbatch -- --a medium --b medium --n 20
+          npm run simbatch -- --a hard:berserker --b medium:purist --scheme chaos --arena rooftop --revenge --n 10
       - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Browser smoke tests (menu, vs bot, full bot match + verified replay)
+        run: npm run e2e

@@ -19,8 +19,11 @@
   "include": [
     "packages/*/src",
     "packages/*/test",
+    "apps/*/test",
     "apps/*/src",
     "apps/*/vite.config.ts",
+    "apps/*/capacitor.config.ts",
+    "apps/*/scripts",
     "tools/*/src",
     "vitest.config.ts"
   ]

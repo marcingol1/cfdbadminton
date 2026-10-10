@@ -8,7 +8,18 @@
   --p1: #e43b44;
   --p2: #2ce8f5;
   --accent: #feae34;
+  --hp-ok: #63c74d;
+  --hp-warn: #feae34;
+  --hp-low: #e43b44;
   color-scheme: dark;
+}
+
+/* Colorblind-safe team and HP colors (Settings → Accessibility). */
+:root.cb {
+  --p1: #f77622;
+  --hp-ok: #0099db;
+  --hp-warn: #fee761;
+  --hp-low: #ff0044;
 }
 
 * {
@@ -75,7 +86,7 @@ button {
 
 .title {
   margin: 0;
-  font-size: calc(var(--u) * 26);
+  font-size: calc(var(--u) * 22);
   font-weight: normal;
   letter-spacing: calc(var(--u) * 1);
   color: var(--text);
@@ -111,13 +122,21 @@ h2.p2 {
 .menu-grid {
   display: grid;
   grid-template-columns: auto auto;
-  gap: calc(var(--u) * 4) calc(var(--u) * 6);
+  gap: calc(var(--u) * 3) calc(var(--u) * 6);
   align-items: center;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  gap: calc(var(--u) * 3) calc(var(--u) * 4);
+  align-items: center;
+  justify-items: start;
 }
 
 .big {
   min-width: calc(var(--u) * 120);
-  padding: calc(var(--u) * 4) calc(var(--u) * 6);
+  padding: calc(var(--u) * 3) calc(var(--u) * 6);
   background: var(--panel);
   border: calc(var(--u) * 1) solid var(--line);
   box-shadow: 0 calc(var(--u) * 2) 0 var(--ink);
@@ -176,7 +195,10 @@ h2.p2 {
 }
 
 .help {
-  max-width: calc(var(--u) * 360);
+  max-width: calc(var(--u) * 400);
+  max-height: calc(var(--u) * 190);
+  overflow-y: auto;
+  pointer-events: auto;
   text-align: left;
   font-size: calc(var(--u) * 5);
   line-height: 1.7;
@@ -235,8 +257,216 @@ h2.p2 {
 
 .side {
   display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 2);
+}
+
+.side.p1 {
+  align-items: flex-start;
+}
+
+.side.p2 {
+  align-items: flex-end;
+}
+
+.side .row {
+  display: flex;
   align-items: center;
   gap: calc(var(--u) * 4);
+}
+
+.side .row.sub {
+  gap: calc(var(--u) * 3);
+  font-size: calc(var(--u) * 4);
+}
+
+.hp {
+  position: relative;
+  width: calc(var(--u) * 50);
+  height: calc(var(--u) * 4);
+  background: var(--ink);
+  outline: calc(var(--u) * 1) solid var(--ink);
+}
+
+.hp i,
+.hp b {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+}
+
+.hp i.ok {
+  background: var(--hp-ok);
+}
+
+.hp i.warn {
+  background: var(--hp-warn);
+}
+
+.hp i.low {
+  background: var(--hp-low);
+}
+
+.hp b {
+  height: 40%;
+  background: #2ce8f5;
+}
+
+.side.p2 .hp i,
+.side.p2 .hp b {
+  left: auto;
+  right: 0;
+}
+
+.hp-num {
+  color: var(--text);
+  text-shadow: calc(var(--u) * 1) calc(var(--u) * 1) 0 var(--ink);
+}
+
+.side .row.keys {
+  flex-wrap: wrap;
+  max-width: calc(var(--u) * 175);
+  gap: calc(var(--u) * 1) calc(var(--u) * 3);
+  font-size: calc(var(--u) * 3.5);
+  color: var(--text);
+}
+
+.side.p2 .row.keys {
+  justify-content: flex-end;
+}
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.5);
+  background: rgb(24 20 37 / 80%);
+  white-space: nowrap;
+}
+
+.key kbd {
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 1.5);
+  font: inherit;
+  color: var(--ink);
+  background: var(--accent);
+  box-shadow: 0 calc(var(--u) * 1) 0 #c28569;
+}
+
+.weapon {
+  padding: calc(var(--u) * 1) calc(var(--u) * 2);
+  background: var(--ink);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 2);
+}
+
+.games,
+.sudden {
+  font-size: calc(var(--u) * 4);
+  padding: calc(var(--u) * 1) calc(var(--u) * 2);
+  background: var(--ink);
+  color: var(--muted);
+}
+
+.sudden {
+  color: var(--p1);
+  animation: blink 0.6s steps(2) infinite;
+}
+
+.revenge {
+  position: absolute;
+  top: calc(var(--u) * 78);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: calc(var(--u) * 5);
+  align-items: center;
+  padding: calc(var(--u) * 3) calc(var(--u) * 5);
+  background: var(--ink);
+  font-size: calc(var(--u) * 5);
+  white-space: nowrap;
+  pointer-events: none;
+  border-bottom: calc(var(--u) * 2) solid var(--accent);
+  background-image: linear-gradient(
+    90deg,
+    rgb(254 174 52 / 25%) calc(var(--t, 1) * 100%),
+    transparent 0
+  );
+}
+
+.revenge.p1 {
+  color: var(--p1);
+}
+
+.revenge.p2 {
+  color: var(--p2);
+}
+
+.revenge .time {
+  color: var(--text);
+}
+
+.revenge .time.low {
+  color: var(--p1);
+  animation: blink 0.5s steps(2) infinite;
+}
+
+.revenge .power {
+  position: relative;
+  width: calc(var(--u) * 40);
+  height: calc(var(--u) * 4);
+  background: var(--panel);
+}
+
+.revenge .power i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #feae34, #f77622, #e43b44);
+}
+
+.float {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  font-size: calc(var(--u) * 6);
+  text-shadow: calc(var(--u) * 1) calc(var(--u) * 1) 0 var(--ink);
+  pointer-events: none;
+  animation: floatUp 1s steps(10) forwards;
+}
+
+.float.dmg {
+  color: #ff0044;
+}
+
+.float.heal {
+  color: #63c74d;
+}
+
+.float.shield {
+  color: #2ce8f5;
+}
+
+.float.perfect {
+  color: #fee761;
+  font-size: calc(var(--u) * 5);
+}
+
+.float.callout {
+  color: #f77622;
+  font-size: calc(var(--u) * 7);
+}
+
+@keyframes floatUp {
+  to {
+    transform: translate(-50%, -260%);
+    opacity: 0;
+  }
 }
 
 .side .name {
@@ -287,7 +517,7 @@ h2.p2 {
 
 .banner {
   position: absolute;
-  top: 34%;
+  top: 44%;
   left: 50%;
   transform: translateX(-50%);
   padding: calc(var(--u) * 4) calc(var(--u) * 8);
@@ -303,6 +533,11 @@ h2.p2 {
   border-bottom: calc(var(--u) * 2) solid var(--p1);
 }
 
+.banner.big {
+  font-size: calc(var(--u) * 14);
+  padding: calc(var(--u) * 5) calc(var(--u) * 10);
+}
+
 .banner.p2 {
   color: var(--p2);
   border-bottom: calc(var(--u) * 2) solid var(--p2);
@@ -316,7 +551,7 @@ h2.p2 {
 
 .hint {
   position: absolute;
-  top: calc(var(--u) * 40);
+  top: calc(var(--u) * 66);
   left: 50%;
   transform: translateX(-50%);
   padding: calc(var(--u) * 2) calc(var(--u) * 4);
@@ -392,11 +627,31 @@ h2.p2 {
   width: 100%;
 }
 
-/* ---------- Touch controls ---------- */
+/* ---------- Touch controls ----------
+   Fixed to the whole screen (not the 16:9 stage) so wide phones put them in the side bars.
+   Sized in vh: a phone held sideways is 320–430 px tall. */
 .touch {
-  position: absolute;
+  --s: 0.9;
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  position: fixed;
   inset: 0;
   pointer-events: none;
+  font-family: 'Press Start 2P', ui-monospace, monospace;
+  z-index: 2;
+}
+
+.touch[hidden] {
+  display: none;
+}
+
+.touch[data-size='small'] {
+  --s: 0.75;
+}
+
+.touch[data-size='large'] {
+  --s: 1.1;
 }
 
 .touch-stick-zone {
@@ -404,18 +659,18 @@ h2.p2 {
   left: 0;
   bottom: 0;
   width: 45%;
-  height: 70%;
+  height: 78%;
   pointer-events: auto;
 }
 
 .touch-base {
   position: absolute;
-  left: 22%;
-  top: 60%;
-  width: calc(var(--u) * 44);
-  height: calc(var(--u) * 44);
-  margin: calc(var(--u) * -22) 0 0 calc(var(--u) * -22);
-  border: calc(var(--u) * 1) solid rgb(255 255 255 / 25%);
+  left: calc(var(--safe-l) + 20vh);
+  top: 62%;
+  width: calc(30vh * var(--s));
+  height: calc(30vh * var(--s));
+  transform: translate(-50%, -50%);
+  border: 2px solid rgb(255 255 255 / 25%);
   border-radius: 50%;
   opacity: 0.5;
 }
@@ -428,20 +683,50 @@ h2.p2 {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(var(--u) * 18);
-  height: calc(var(--u) * 18);
-  margin: calc(var(--u) * -9) 0 0 calc(var(--u) * -9);
+  width: 40%;
+  height: 40%;
+  margin: -20% 0 0 -20%;
   border-radius: 50%;
   background: rgb(255 255 255 / 35%);
+}
+
+/* The button cluster is laid out for the right hand; left-handed mirrors it. */
+.touch-buttons {
+  position: absolute;
+  right: var(--safe-r);
+  bottom: var(--safe-b);
+  width: calc(62vh * var(--s));
+  height: calc(80vh * var(--s));
+}
+
+.touch.lefty .touch-stick-zone {
+  left: auto;
+  right: 0;
+}
+
+.touch.lefty .touch-base {
+  left: calc(100% - var(--safe-r) - 20vh);
+}
+
+.touch.lefty .touch-buttons {
+  right: auto;
+  left: var(--safe-l);
+  transform: scaleX(-1);
+}
+
+.touch.lefty .touch-btn span {
+  display: inline-block;
+  transform: scaleX(-1);
 }
 
 .touch-btn {
   position: absolute;
   pointer-events: auto;
   border-radius: 50%;
-  border: calc(var(--u) * 1) solid rgb(255 255 255 / 30%);
+  border: 2px solid rgb(255 255 255 / 30%);
   background: rgb(24 20 37 / 45%);
-  font-size: calc(var(--u) * 5);
+  font-size: calc(3.4vh * var(--s));
+  touch-action: none;
 }
 
 .touch-btn.pressed {
@@ -449,17 +734,62 @@ h2.p2 {
 }
 
 .touch-hit {
-  right: calc(var(--u) * 10);
-  bottom: calc(var(--u) * 20);
-  width: calc(var(--u) * 46);
-  height: calc(var(--u) * 46);
+  right: 4%;
+  bottom: 8%;
+  width: 44%;
+  height: calc(27vh * var(--s));
 }
 
 .touch-jump {
-  right: calc(var(--u) * 62);
-  bottom: calc(var(--u) * 10);
-  width: calc(var(--u) * 32);
-  height: calc(var(--u) * 32);
+  right: 50%;
+  bottom: 3%;
+  width: 30%;
+  height: calc(18.5vh * var(--s));
+}
+
+.touch-fire {
+  right: 8%;
+  bottom: 50%;
+  width: 30%;
+  height: calc(18.5vh * var(--s));
+  background: rgb(228 59 68 / 35%);
+}
+
+.touch-weapon,
+.touch-fuse {
+  width: 24%;
+  height: calc(15vh * var(--s));
+  font-size: calc(2.8vh * var(--s));
+}
+
+.touch-weapon {
+  right: 42%;
+  bottom: 44%;
+}
+
+.touch-fuse {
+  right: 68%;
+  bottom: 30%;
+}
+
+/* Bigger tap targets on touch screens. */
+@media (pointer: coarse) {
+  .chip {
+    padding: calc(var(--u) * 3) calc(var(--u) * 4);
+  }
+
+  .big {
+    padding: calc(var(--u) * 4) calc(var(--u) * 6);
+  }
+
+  .link {
+    padding: calc(var(--u) * 2) 0;
+  }
+
+  .pause-btn {
+    width: calc(var(--u) * 26);
+    height: calc(var(--u) * 20);
+  }
 }
 
 .rotate {
@@ -476,4 +806,254 @@ h2.p2 {
     font-size: 14px;
     z-index: 10;
   }
+}
+
+.fps {
+  position: absolute;
+  left: calc(var(--u) * 2);
+  top: calc(var(--u) * 2);
+  padding: calc(var(--u) * 1) calc(var(--u) * 2);
+  background: rgb(24 20 37 / 75%);
+  font-size: calc(var(--u) * 4);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.fps.good {
+  color: #63c74d;
+}
+
+.fps.ok {
+  color: #feae34;
+}
+
+.fps.bad {
+  color: #e43b44;
+}
+
+.verified {
+  margin: 0;
+  font-size: calc(var(--u) * 5);
+}
+
+.verified.ok {
+  color: #63c74d;
+}
+
+.verified.bad,
+.error {
+  color: var(--p1);
+  font-size: calc(var(--u) * 5);
+}
+
+.big[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Settings screen (menu and pause). */
+.settings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 5);
+}
+
+.settings h2 {
+  margin: 0;
+}
+
+.settings-grid.two {
+  grid-template-columns: auto auto;
+  gap: calc(var(--u) * 3) calc(var(--u) * 6);
+  min-height: calc(var(--u) * 100);
+  align-content: start;
+}
+
+.settings-grid.keymap {
+  grid-template-columns: auto auto auto auto;
+  gap: calc(var(--u) * 2) calc(var(--u) * 4);
+  min-height: 0;
+}
+
+.settings .label {
+  justify-self: end;
+}
+
+.settings .chip.key {
+  min-width: calc(var(--u) * 46);
+}
+
+.settings input[type='range'] {
+  width: calc(var(--u) * 90);
+  accent-color: var(--accent);
+}
+
+.settings output {
+  min-width: calc(var(--u) * 20);
+  color: var(--text);
+  font-size: calc(var(--u) * 5);
+}
+
+.tabs .chip {
+  font-size: calc(var(--u) * 6);
+}
+
+/* Tutorial checklist (top center, under the serve hint). */
+.tutorial {
+  position: absolute;
+  top: calc(var(--u) * 80);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(var(--u) * 250);
+  padding: calc(var(--u) * 3) calc(var(--u) * 5);
+  background: rgb(24 20 37 / 88%);
+  border: calc(var(--u) * 1) solid var(--accent);
+  box-shadow: 0 calc(var(--u) * 2) 0 var(--ink);
+  pointer-events: none;
+}
+
+.tutorial .step {
+  display: flex;
+  justify-content: space-between;
+  color: var(--accent);
+  font-size: calc(var(--u) * 5);
+}
+
+.tutorial .dots {
+  letter-spacing: calc(var(--u) * 1);
+}
+
+.tutorial p {
+  margin: calc(var(--u) * 2) 0 0;
+  color: var(--text);
+  font-size: calc(var(--u) * 5);
+  line-height: 1.5;
+}
+
+/* Challenges list. */
+.challenges {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 2);
+  width: calc(var(--u) * 340);
+}
+
+.challenge {
+  display: grid;
+  grid-template-columns: calc(var(--u) * 10) calc(var(--u) * 90) 1fr;
+  align-items: center;
+  padding: calc(var(--u) * 2) calc(var(--u) * 4);
+  background: var(--panel);
+  border: calc(var(--u) * 1) solid var(--line);
+  text-align: left;
+  font-size: calc(var(--u) * 5);
+}
+
+.challenge:hover,
+.challenge:focus-visible {
+  border-color: var(--accent);
+}
+
+.challenge b {
+  color: var(--muted);
+}
+
+.challenge.done b,
+.challenge.done .name {
+  color: var(--hp-ok);
+}
+
+.challenge .goal {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.chips.links {
+  gap: calc(var(--u) * 8);
+}
+
+h2 .count {
+  color: var(--accent);
+  font-size: 0.6em;
+}
+
+/* Locker (player looks). */
+.locker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 4);
+}
+
+.locker h2 {
+  margin: 0;
+}
+
+.locker-body {
+  display: flex;
+  gap: calc(var(--u) * 10);
+  align-items: center;
+}
+
+.locker .preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+}
+
+.locker canvas {
+  width: calc(var(--u) * 96);
+  height: calc(var(--u) * 96);
+  image-rendering: pixelated;
+  background: rgb(24 20 37 / 60%);
+  border: calc(var(--u) * 1) solid var(--line);
+}
+
+.locker input.name {
+  width: calc(var(--u) * 96);
+  padding: calc(var(--u) * 2);
+  background: var(--ink);
+  border: calc(var(--u) * 1) solid var(--line);
+  color: var(--text);
+  font: inherit;
+  font-size: calc(var(--u) * 6);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.locker-grid {
+  min-height: 0;
+  gap: calc(var(--u) * 2) calc(var(--u) * 4);
+}
+
+.locker-grid .chips {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  max-width: calc(var(--u) * 190);
+}
+
+.swatch {
+  width: calc(var(--u) * 10);
+  height: calc(var(--u) * 10);
+  padding: 0;
+  border: calc(var(--u) * 1) solid var(--ink);
+  outline: calc(var(--u) * 1) solid var(--line);
+  font-size: calc(var(--u) * 5);
+  color: var(--muted);
+}
+
+.swatch.none {
+  background: var(--ink);
+}
+
+.swatch.on {
+  outline: calc(var(--u) * 1) solid var(--accent);
+  box-shadow: 0 0 0 calc(var(--u) * 1) var(--accent);
+}
+
+.locker-grid .chip {
+  padding: calc(var(--u) * 1) calc(var(--u) * 2);
+  font-size: calc(var(--u) * 4);
 }

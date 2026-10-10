@@ -38,11 +38,20 @@ export interface TeamColors {
   shirt: number;
   shirtShade: number;
   shorts: number;
-  band: number;
+  /** Headband color, or null for none. */
+  band: number | null;
   hair: number;
   racket: number;
+  skin: number;
+  skinDark: number;
+  hairStyle: 'short' | 'long' | 'spiky' | 'mohawk' | 'ponytail' | 'bald';
+  extra: 'none' | 'glasses' | 'cap' | 'wristbands';
 }
 
+/**
+ * How each side is drawn right now. The app fills these from the players' looks at the
+ * start of every match (render/looks.ts); the canvas and the crowd read them every frame.
+ */
 export const TEAMS: [TeamColors, TeamColors] = [
   {
     shirt: C.brightRed,
@@ -51,8 +60,48 @@ export const TEAMS: [TeamColors, TeamColors] = [
     band: C.yellow,
     hair: C.darkBrown,
     racket: C.orange,
+    skin: C.skin,
+    skinDark: C.skinDark,
+    hairStyle: 'short',
+    extra: 'none',
   },
-  { shirt: C.blue, shirtShade: C.navy, shorts: C.ink, band: C.cyan, hair: C.black, racket: C.cyan },
+  {
+    shirt: C.blue,
+    shirtShade: C.navy,
+    shorts: C.ink,
+    band: C.cyan,
+    hair: C.black,
+    racket: C.cyan,
+    skin: C.beige,
+    skinDark: C.rose,
+    hairStyle: 'short',
+    extra: 'none',
+  },
 ];
+
+export function setTeams(teams: [TeamColors, TeamColors]): void {
+  Object.assign(TEAMS[0], teams[0]);
+  Object.assign(TEAMS[1], teams[1]);
+}
+
+/** HP bar colors (healthy, hurt, critical). */
+export const HP_COLORS = {
+  ok: C.green as number,
+  warn: C.yellow as number,
+  low: C.brightRed as number,
+};
+
+export type ColorMode = 'standard' | 'colorblind';
+
+/** Switches HP and HUD colors (the kits follow the players' looks, see looks.ts). */
+export function setColorMode(mode: ColorMode): void {
+  Object.assign(
+    HP_COLORS,
+    mode === 'colorblind'
+      ? { ok: C.blue, warn: C.paleYellow, low: C.pink }
+      : { ok: C.green, warn: C.yellow, low: C.brightRed },
+  );
+  document.documentElement.classList.toggle('cb', mode === 'colorblind');
+}
 
 export const css = (c: number) => `#${c.toString(16).padStart(6, '0')}`;

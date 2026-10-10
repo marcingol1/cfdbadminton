@@ -1,17 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
   Buttons,
+  DEFAULT_TUNING,
   HALF_COURT,
   NEUTRAL_INPUT,
   SHORT_SERVICE_LINE,
   createMatch,
   isMatchWon,
   judgeLanding,
+  playShot,
+  seedRng,
   shoulderOf,
   step,
 } from '../src';
 import type { InputFrame, MatchState, PlayerId } from '../src';
 import { idle, rallyState, runUntil } from './helpers';
+
+const PURIST = { scheme: 'purist' } as const;
 
 function press(player: PlayerId, frame: Partial<InputFrame>): readonly [InputFrame, InputFrame] {
   const f = { ...NEUTRAL_INPUT, ...frame };
@@ -50,7 +55,7 @@ describe('R-01 point victory', () => {
 
 describe('R-10 serve order', () => {
   it('the first server comes from the seed, and the rally winner serves next', () => {
-    const servers = new Set(Array.from({ length: 20 }, (_, i) => createMatch({}, i).server));
+    const servers = new Set(Array.from({ length: 20 }, (_, i) => createMatch(PURIST, i).server));
     expect(servers).toEqual(new Set([0, 1]));
 
     const s = rallyState({ x: -3, y: 0.5, vx: 0, vy: -5 }, 0);
@@ -65,7 +70,7 @@ describe('R-10 serve order', () => {
 
 describe('R-11 / R-12 / R-13 serving', () => {
   it('serves start underhand, below 1.15 m, and fly upward', () => {
-    const s = createMatch({}, 5);
+    const s = createMatch(PURIST, 5);
     const events = serveWith(s, { moveY: 127 });
     const hit = events.find((e) => e.type === 'hit');
     expect(hit?.type === 'hit' && hit.y).toBeLessThan(1.15);
@@ -74,7 +79,7 @@ describe('R-11 / R-12 / R-13 serving', () => {
   });
 
   it('the server cannot move before serving', () => {
-    const s = createMatch({}, 5);
+    const s = createMatch(PURIST, 5);
     const x = s.players[s.server].x;
     for (let i = 0; i < 30; i++) step(s, press(s.server, { moveX: 127 }));
     expect(s.players[s.server].x).toBe(x);
@@ -88,7 +93,7 @@ describe('R-11 / R-12 / R-13 serving', () => {
   });
 
   it('an unanswered short serve that lands in scores for the server', () => {
-    const s = createMatch({}, 11);
+    const s = createMatch(PURIST, 11);
     const server = s.server;
     serveWith(s, {});
     const point = runUntil(s, 'point');
@@ -99,7 +104,7 @@ describe('R-11 / R-12 / R-13 serving', () => {
 
 describe('R-14 serve clock', () => {
   it('auto-serves when the clock runs out', () => {
-    const s = createMatch({}, 3);
+    const s = createMatch(PURIST, 3);
     const serve = runUntil(s, 'serve', s.config.tuning.serve.clockTicks + 5);
     expect(serve?.shot).toBe('serveHigh');
     expect(s.rally.serveClock).toBe(s.config.tuning.serve.clockTicks);
@@ -142,7 +147,13 @@ describe('R-24 / R-25 contact rules', () => {
   function swingAt(s: MatchState, p: PlayerId) {
     const pl = s.players[p];
     const sh = shoulderOf(pl);
-    s.shuttle = { mode: 'flight', x: sh.x + pl.facing * 0.6, y: sh.y + 0.2, vx: 0, vy: 0 };
+    Object.assign(s.shuttle, {
+      mode: 'flight',
+      x: sh.x + pl.facing * 0.6,
+      y: sh.y + 0.2,
+      vx: 0,
+      vy: 0,
+    });
     const hits = [];
     for (let i = 0; i < 8; i++) {
       const frame = press(p, { buttons: i === 0 ? Buttons.HIT : 0 });
@@ -169,7 +180,7 @@ describe('R-24 / R-25 contact rules', () => {
     const s = rallyState({ x: 0, y: 0, vx: 0, vy: 0 }, 1);
     s.players[0].x = -0.3;
     const pl = s.players[0];
-    s.shuttle = { mode: 'flight', x: 0.3, y: shoulderOf(pl).y, vx: 0, vy: 0 };
+    Object.assign(s.shuttle, { mode: 'flight', x: 0.3, y: shoulderOf(pl).y, vx: 0, vy: 0 });
     let hits = 0;
     for (let i = 0; i < 8; i++) {
       hits += step(s, press(0, { buttons: i === 0 ? Buttons.HIT : 0 })).filter(
@@ -211,5 +222,63 @@ describe('movement', () => {
     for (let i = 0; i < 60; i++) step(s, idle);
     expect(s.players[0].grounded).toBe(true);
     expect(s.players[0].y).toBe(0);
+  });
+});
+
+describe('swing input buffer', () => {
+  const busy = () => {
+    const s = rallyState({ x: 4, y: 6, vx: 0, vy: 0 }, 1);
+    s.players[0].swingTick = 11; // recovering from a swing that just missed
+    return s;
+  };
+  const firstSwing = (s: MatchState, ticks: number) => {
+    for (let i = 0; i < ticks; i++)
+      if (step(s, idle).some((e) => e.type === 'swing' && e.player === 0)) return i;
+    return -1;
+  };
+
+  it('a HIT pressed while the racket is busy swings as soon as it is free', () => {
+    const s = busy();
+    step(s, press(0, { buttons: Buttons.HIT }));
+    // Ticks 12..15 finish the old swing; the queued one starts right after.
+    expect(firstSwing(s, 8)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('without a press nothing happens, and a press too early expires', () => {
+    expect(firstSwing(busy(), 10)).toBe(-1);
+    const s = busy();
+    s.players[0].swingTick = 0;
+    step(s, press(0, { buttons: Buttons.HIT }));
+    expect(firstSwing(s, 20)).toBe(-1);
+  });
+});
+
+describe('jump smash', () => {
+  it('scales the smash launch speed', () => {
+    const t = DEFAULT_TUNING;
+    const shoot = (scale: number) => {
+      const v = playShot('smash', 1, -3, 2.6, 1, 0, 0.2, t, null, seedRng(1), scale);
+      return Math.hypot(v.vx, v.vy);
+    };
+    expect(shoot(t.swing.jumpSmashSpeed) / shoot(1)).toBeCloseTo(t.swing.jumpSmashSpeed, 1);
+  });
+
+  it('a smash hit in the air is a jump smash, faster than a ground smash', () => {
+    const s = rallyState({ x: -2, y: 0, vx: 0, vy: 0 }, 1);
+    const p = s.players[0];
+    p.x = -3;
+    p.y = 0.9;
+    p.vy = 1;
+    p.grounded = false;
+    const sh = shoulderOf(p);
+    s.shuttle = { ...s.shuttle, x: sh.x + 0.4, y: sh.y + 0.3, vx: 0, vy: 0 };
+    p.swingTick = 4;
+    p.swingIntent = 'forward';
+    const hit = step(s, idle).find((e) => e.type === 'hit');
+    expect(hit?.type === 'hit' && hit.shot).toBe('smash');
+    expect(hit?.type === 'hit' && hit.jump).toBe(true);
+    expect(hit?.type === 'hit' && hit.speed).toBeGreaterThan(
+      DEFAULT_TUNING.shots.smash.speed * 1.1,
+    );
   });
 });

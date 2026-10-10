@@ -152,8 +152,11 @@ export function playShot(
   tuning: Tuning,
   ceiling: number | null,
   rng: RngState,
+  /** Multiplies the launch speed of fixed-speed shots (jump smashes). */
+  speedScale = 1,
 ): { vx: number; vy: number } {
-  const spec = tuning.shots[type];
+  const base = tuning.shots[type];
+  const spec = speedScale === 1 ? base : { ...base, speed: base.speed * speedScale };
   const err = 1 - clamp(quality, 0, 1);
   const depth = spec.depth + err * spec.depthError * nextRange(rng, -1, 1);
   const angleErr = degToRad(err * spec.angleError * nextRange(rng, -1, 1));

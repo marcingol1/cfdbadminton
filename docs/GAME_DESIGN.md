@@ -40,7 +40,7 @@ stateDiagram-v2
     Rally --> RallyEnd: shuttle lands / fault / body hit
     Rally --> MatchOver: KO
     RallyEnd --> MatchOver: point target reached
-    RallyEnd --> RevengeTurn: loser has a revenge weapon
+    RallyEnd --> RevengeTurn: option on and the roll hits (~18%)
     RallyEnd --> CrateDrop: no revenge
     RevengeTurn --> MatchOver: KO
     RevengeTurn --> CrateDrop
@@ -52,10 +52,11 @@ stateDiagram-v2
 2. **Rally (real-time).** Move, jump, and hit. Before a hit you may **load** a special
    shuttle, or **throw** a deployable such as a mine.
 3. **Rally end.** A point is awarded under the badminton rules in §6.
-4. **Revenge Turn (turn-based, Worms-style).** The player who **lost** the point gets one
-   aimed shot with an off-hand weapon (rocket, mortar, air strike…) or a utility (medkit,
-   shield). The target **can move to dodge** but cannot attack. This is the comeback
-   mechanic: being behind on points gives you chances to hurt the leader.
+4. **Revenge Turn (optional, off by default; turn-based, Worms-style).** When the option is
+   on, the player who **lost** the point _sometimes_ gets one aimed shot with an off-hand
+   weapon (rocket, mortar, air strike…) or a utility (medkit, shield): a seeded roll, about
+   18% of lost points in Standard and 40% in Chaos. The target **can move to dodge** but
+   cannot attack. It is a surprise comeback moment, not a fixed step of every point.
 5. **Crate drop.** Sometimes a supply crate parachutes onto the court.
 6. Repeat until someone reaches the point target or is KO'd.
 
@@ -153,14 +154,14 @@ and the implementation cannot drift apart.
 
 ### 6.4 Revenge Turn
 
-| ID   | Rule                                                                                                                                                                                                                             |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R-40 | After a rally that ends in a point (and not the match), the **loser of that point** gets a Revenge Turn, provided they hold any revenge-category weapon or utility. The base Rocket is unlimited, so in practice they always do. |
-| R-41 | **10 s turn timer.** The shooter may move on their own half, pick one weapon, aim (angle and power, Worms-style), and fire **once**. Alternatively they can use one utility, or skip.                                            |
-| R-42 | **The target may move** (run and jump) on their half to dodge, but cannot hit, throw or fire. Option: "Classic targeting" freezes the target.                                                                                    |
-| R-43 | After firing there are **3 s of resolution time**: projectiles finish, ragdolls settle, crates fall.                                                                                                                             |
-| R-44 | Revenge Turns **never score points**. Damage and KOs only.                                                                                                                                                                       |
-| R-45 | Self-damage is on. You can blow yourself up.                                                                                                                                                                                     |
+| ID   | Rule                                                                                                                                                                                                                                                                                                                                                                            |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R-40 | Revenge Turns are a **match option, off by default**. When on, after a rally that ends in a point (and not the game), a seeded roll decides whether the **loser of that point** gets a Revenge Turn: about 18% of lost points in Standard, 40% in Chaos, never in Purist. They also need a revenge-category weapon or utility; the unlimited Rocket means they always have one. |
+| R-41 | **10 s turn timer.** The shooter may move on their own half, pick one weapon, aim (angle and power, Worms-style), and fire **once**. Alternatively they can use one utility, or skip.                                                                                                                                                                                           |
+| R-42 | **The target may move** (run and jump) on their half to dodge, but cannot hit, throw or fire. Option: "Classic targeting" freezes the target.                                                                                                                                                                                                                                   |
+| R-43 | After firing there are **3 s of resolution time**: projectiles finish, ragdolls settle, crates fall.                                                                                                                                                                                                                                                                            |
+| R-44 | Revenge Turns **never score points**. Damage and KOs only.                                                                                                                                                                                                                                                                                                                      |
+| R-45 | Self-damage is on. You can blow yourself up.                                                                                                                                                                                                                                                                                                                                    |
 
 ### 6.5 Weapons, ammo and restrictions
 
@@ -183,17 +184,17 @@ also cause knockback and craters, and they push the shuttle if it is inside the 
 | Weapon               | Ammo | Delay     | Effect                                                                                       | Counterplay / dilemma                                                                          |
 | -------------------- | ---- | --------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Standard shuttle** | ∞    | –         | A body hit at smash speed (> 20 m/s) deals 3–8 dmg                                           | —                                                                                              |
-| **Frag Shuttle**     | 2    | 0         | **Fuse 1–5 s, chosen by you** (Worms grenade). Explodes wherever it is: 35 dmg, 1.6 m radius | **Hot potato:** return it and the fuse keeps ticking, or let it land (lose the point) and run. |
-| **Shock Shuttle**    | 3    | 0         | Whoever hits it next takes 12 dmg and a 0.4 s stun                                           | Return it and take the damage, or concede the point.                                           |
+| **Frag Shuttle**     | 2    | 0         | **Fuse 1–5 s, chosen by you** (Worms grenade). Explodes wherever it is: 45 dmg, 1.6 m radius | **Hot potato:** return it and the fuse keeps ticking, or let it land (lose the point) and run. |
+| **Shock Shuttle**    | 3    | 0         | Whoever hits it next takes 15 dmg and a 0.4 s stun                                           | Return it and take the damage, or concede the point.                                           |
 | **Lead Shuttle**     | 3    | 0         | Low drag, so it flies very fast. A body hit deals 25 dmg plus big knockback                  | Hard to read. Stay deep.                                                                       |
-| **Cluster Shuttle**  | 1    | 3 rallies | On floor contact, splits into 4 bomblets: 10 dmg each, 0.8 m radius                          | Get away from the landing point.                                                               |
+| **Cluster Shuttle**  | 1    | 3 rallies | On floor contact, splits into 4 bomblets: 14 dmg each, 0.8 m radius                          | Get away from the landing point.                                                               |
 | **Ghost Shuttle**    | 2    | 0         | Invisible for 0.8 s after crossing the net (only a floor shadow shows)                       | Read the hitter's swing.                                                                       |
 
 ### 7.2 Throwables: usable during a rally, at the cost of a 0.5 s throw
 
 | Weapon             | Ammo | Delay     | Effect                                                                                               |
 | ------------------ | ---- | --------- | ---------------------------------------------------------------------------------------------------- |
-| **Proximity Mine** | 2    | 2 rallies | Lobbed onto the opponent's half. Arms after 1 s, blinks, triggers on proximity: 25 dmg, 1.2 m radius |
+| **Proximity Mine** | 2    | 2 rallies | Lobbed onto the opponent's half. Arms after 1 s, blinks, triggers on proximity: 30 dmg, 1.2 m radius |
 
 ### 7.3 Revenge weapons: only usable in a Revenge Turn
 
@@ -233,7 +234,14 @@ All weapon parameters live in **data files**, not in code, so balancing never ne
 ## 9. Damage, knockback, death
 
 - Explosion damage: `max * (1 - distance / radius)`. Knockback scales the same way.
-- Fall damage: 2 dmg per meter beyond a 3 m drop. This only applies after a knockback.
+- Fall damage: 4 dmg per meter beyond a 2 m drop. This only applies after a knockback.
+- Knockback is mostly an upward pop (60% of the push is sideways) and is capped at 6 m/s
+  sideways and 10 m/s up, so stacked blasts (an Air Strike) can't fling someone across the
+  court. Craters are at most 0.45 m deep.
+- _Tuning note (M2):_ with Revenge Turns optional and rare, the loaded shuttles and mines
+  carry the KO threat, so their damage went up (§7). Bot-vs-bot, Standard, Hall: Medium vs
+  Medium ends by KO in ~40% of matches with Revenge Turns off and ~47% with them on; Hard vs
+  Hard ~65% (target: 35–65%).
 - **Death presentation is cartoon only**: a ragdoll flop, a puff of smoke and a tombstone
   with a racket on top. There is no blood or gore. This keeps the game within PEGI 7–12 /
   ESRB E10+, which matters for the App Store and Google Play.
@@ -254,15 +262,22 @@ shot, and the timing (distance from the racket's sweet spot) sets its quality an
 | Down             | Drop / net shot       | Drop                         |
 | Neutral          | Lift                  | Drive                        |
 
-| Action        | Keyboard + mouse             | Gamepad              | Touch (landscape)                   |
-| ------------- | ---------------------------- | -------------------- | ----------------------------------- |
-| Move          | A / D                        | Left stick           | Virtual stick (left thumb)          |
-| Jump          | W / Space                    | A                    | Jump button                         |
-| Hit           | J / left mouse button        | X                    | Big hit button (right thumb)        |
-| Weapon select | 1–6 / mouse wheel            | Bumpers              | Weapon button opens a radial menu   |
-| Throw / Fire  | K / right mouse button       | Y / RT               | Fire button                         |
-| Frag fuse     | Q / E                        | D-pad                | +/- on the weapon chip              |
-| Revenge aim   | Mouse aim, hold to set power | Right stick, hold RT | Drag back like a slingshot, release |
+**Jump smash.** A smash hit in the air leaves the racket 15% faster than one hit from the
+ground (`tuning.swing.jumpSmashSpeed`), and it is steeper because the contact is higher.
+
+**Swing buffer.** A hit pressed while the racket is still busy (finishing a swing or a
+throw) is remembered for 6 ticks (`tuning.swing.bufferTicks`) and swings as soon as the
+racket is free, so a press that is a hair early isn't lost.
+
+| Action        | Keyboard + mouse            | Gamepad            | Touch (landscape)            |
+| ------------- | --------------------------- | ------------------ | ---------------------------- |
+| Move          | A / D                       | Left stick         | Virtual stick (left thumb)   |
+| Jump          | W / Space                   | A                  | Jump button                  |
+| Hit           | J / left mouse button       | X                  | Big hit button (right thumb) |
+| Weapon select | Q / E (previous / next)     | LB / RB            | WPN button (next)            |
+| Throw / Fire  | K / right mouse button      | Y / RT             | FIRE button                  |
+| Frag fuse     | R (cycles 1–5 s)            | B                  | FUSE button                  |
+| Revenge aim   | ↑ / ↓ aim, hold K to charge | Stick, hold Y / RT | Stick up/down, hold FIRE     |
 
 **Assists** (on by default against Easy bots and on touch, toggleable): a landing marker
 for the shuttle, a slightly larger hit window, and aim assist toward the court.
@@ -324,7 +339,7 @@ replay sharing links.
   - **MVP (M0–M3):** all sprites are pixel grids defined in code and turned into textures
     at boot. Sound effects are generated procedurally with WebAudio (sfxr-style). You
     don't need to deliver anything.
-  - **Polish (M4):** we either commission a pixel artist using this document as the
-    brief, or swap in hand-made sprite sheets. Sprites are addressed by animation name,
-    so replacing the art never touches game code. Music comes from a commissioned or
-    licensed source.
+  - **Polish (M4):** the code-drawn art got an animation and effects pass, and the music
+    is a procedural chiptune sequencer (`apps/web/src/audio/music.ts`), so there are still
+    no asset files. A pixel artist or composer can replace either later without touching
+    game logic: rendering only reads the sim state and events.

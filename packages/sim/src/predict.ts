@@ -1,7 +1,7 @@
 import { SHUTTLE_SUBSTEPS } from './constants';
 import { advanceFlight } from './physics/shuttle';
 import type { FlightEvent } from './physics/shuttle';
-import { flightEnv } from './rules/match';
+import { flightEnv } from './world';
 import type { MatchState } from './types';
 
 export interface TrajectoryPoint {

@@ -63,6 +63,15 @@ describe('shuttle flight', () => {
     expect(b.x).toBeLessThan(0);
   });
 
+  it('a shuttle dropping into a crater under the net is not trapped by the net', () => {
+    const crater = { ...env, groundAt: (x: number) => (Math.abs(x) < 0.5 ? -0.45 : 0) };
+    const b = { x: -0.03, y: 0.3, vx: 0.4, vy: -0.5 };
+    let landed = false;
+    for (let i = 0; i < 240 * 3 && !landed; i++)
+      landed = advanceFlight(b, crater)?.kind === 'floor';
+    expect(landed).toBe(true);
+  });
+
   it('wind pushes the shuttle downwind', () => {
     const still = summarizeFlight({ x: -5, y: 2.5, vx: 20, vy: 20 }, env).landX;
     const tail = summarizeFlight({ x: -5, y: 2.5, vx: 20, vy: 20 }, { ...env, wind: 2 }).landX;

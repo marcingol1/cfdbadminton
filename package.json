@@ -24,7 +24,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "simbatch": "npm run start -w @deadminton/simbatch --",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm test"
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "e2e": "npm run e2e -w @deadminton/web"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
